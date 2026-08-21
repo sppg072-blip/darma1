@@ -12,7 +12,7 @@
 | # | Hal | Keputusan |
 |---|---|---|
 | 1 | Format uang | **Rupiah penuh** `Rp82.809.900,-` — presisi EXACT (penyimpanan Rp Juta 6 desimal = presisi 1 rupiah); helper existing `formatStoredCurrency()` / `storedCurrencyToAbsolute()` dari `domain/forms/currency.js` |
-| 2 | Cakupan baris tabel SPPG | **Semua rekaman monitoring SPPG**, 1 baris per kunjungan, terbaru dulu |
+| 2 | Cakupan baris tabel SPPG | **Kunjungan TERAKHIR per unit** (1 baris/unit) + **baris TOTAL** di bawah (jumlah unit, Σ penerima, Σ belanja, Σ biaya ops) + catatan jumlah seluruh rekaman kunjungan *(revisi user 2026-08-21, menggantikan keputusan awal "semua rekaman 1 baris per kunjungan")* |
 | 3 | Orientasi | **Semua portrait**; lebar kolom proporsional isi |
 | 4 | Seksi lama A–C | **Diganti cerminan dashboard**; "Unit Perlu Perhatian" **dihapus total** |
 | 5 | **P1 — Sinkron filter** | **Angka mengikuti filter aktif** (`filteredUnits()` scope sama dengan dashboard); **kop mencantumkan filter aktif**; tanpa filter = seluruh data |
@@ -102,7 +102,7 @@ Alokasi kolom (mm): `No 6 · Nama SPPG 28 · Tgl 15 · Penerima 14 · Belanja 19
 | 1 | Tabel gambar → seksi output "Ringkasan PDF" | keinginan user |
 | 2 | Mapping kolom → field existing | tanpa field baru |
 | 3 | Uang: rupiah penuh presisi exact | pilihan user; terverifikasi 6-desimal |
-| 4 | Semua rekaman SPPG, 1 baris/kunjungan | pilihan user |
+| 4 | Tabel D: kunjungan terakhir per unit + baris total | revisi user 2026-08-21 (semula: semua rekaman) |
 | 5 | Portrait semua, kolom menyesuaikan | pilihan user |
 | 6 | A–C = cerminan dashboard; "Perlu Perhatian" dihapus | pilihan user |
 | P1 | Ikut filter aktif + kop filter | pilihan user |

@@ -231,26 +231,40 @@ function exportPdfDash(){
     styles:TBL_STYLE,headStyles:TBL_HEAD,...TBL_ALT,columnStyles:{0:{cellWidth:60},1:{cellWidth:30},2:{cellWidth:30},3:{cellWidth:32},4:{cellWidth:34}}});
   y=doc.lastAutoTable.finalY+6;
 
-  /* D. Ringkasan Monitoring SPPG (semua rekaman, 1 baris per kunjungan) */
+  /* D. Ringkasan Monitoring SPPG — kunjungan TERAKHIR per unit + baris TOTAL (revisi user) */
   doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(29,78,216);
-  doc.text('D. Ringkasan Monitoring SPPG (semua rekaman, 1 baris per kunjungan)',12,y);y+=2;
-  const sppgRecs=scopedMon.filter(m=>monKind(m)==='SPPG').sort((a,b)=>String(b.tgl||'').localeCompare(String(a.tgl||'')));
+  doc.text('D. Ringkasan Monitoring SPPG (Kunjungan Terakhir per Unit)',12,y);y+=2;
+  const allSppgRecs=scopedMon.filter(m=>monKind(m)==='SPPG');
+  const seenSppgUnits=new Set();const sppgRecs=[];
+  [...allSppgRecs].sort((a,b)=>String(b.tgl||'').localeCompare(String(a.tgl||''))).forEach(m=>{
+    if(!seenSppgUnits.has(m.unitId)){seenSppgUnits.add(m.unitId);sppgRecs.push(m);}
+  });
   if(sppgRecs.length){
+    let sumPenerima=0,sumBelanja=0,sumOps=0;
+    const bodyRows=sppgRecs.map((m,i)=>{
+      const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};
+      const ka=(f.sp107&&String(f.sp107).trim())||u.pic||'';
+      const nama=stripEmoji(u.nama)+(ka?'\nKa. SPPG: '+stripEmoji(ka):'');
+      const kendala=Array.isArray(f.sp414)?f.sp414.filter(Boolean).join(', '):(f.sp414||'-');
+      const porsiN=(f.sp201&&f.sp201.total!=null)?Number(f.sp201.total):null;
+      const belanjaN=jutaToRpAbs(f.sp410&&f.sp410.total);
+      const opsN=jutaToRpAbs(f.sp413&&f.sp413.total);
+      if(porsiN!=null)sumPenerima+=porsiN;
+      if(belanjaN!=null)sumBelanja+=belanjaN;
+      if(opsN!=null)sumOps+=opsN;
+      return [i+1,nama,fmtD(m.tgl),porsiN!=null?pdfN(porsiN):'-',belanjaN!=null?pdfRp(f.sp410.total):'-',opsN!=null?pdfRp(f.sp413.total):'-',stripEmoji(kendala||'-'),stripEmoji(m.temuan||'-')];
+    });
     doc.autoTable({startY:y,
       head:[['No','Nama SPPG / Ka. SPPG','Tgl','Penerima','Belanja Baku 1mgg','Biaya Ops 1mgg','Kendala/Hambatan','Catatan Lain']],
-      body:sppgRecs.map((m,i)=>{
-        const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};
-        const ka=(f.sp107&&String(f.sp107).trim())||u.pic||'';
-        const nama=stripEmoji(u.nama)+(ka?'\nKa. SPPG: '+stripEmoji(ka):'');
-        const kendala=Array.isArray(f.sp414)?f.sp414.filter(Boolean).join(', '):(f.sp414||'-');
-        const porsi=(f.sp201&&f.sp201.total!=null)?pdfN(f.sp201.total):'-';
-        const belanja=(f.sp410&&f.sp410.total!=null)?pdfRp(f.sp410.total):'-';
-        const ops=(f.sp413&&f.sp413.total!=null)?pdfRp(f.sp413.total):'-';
-        return [i+1,nama,fmtD(m.tgl),porsi,belanja,ops,stripEmoji(kendala||'-'),stripEmoji(m.temuan||'-')];
-      }),
+      body:bodyRows,
+      foot:[['','TOTAL — '+sppgRecs.length+' unit','',pdfN(sumPenerima),pdfRp(sumBelanja/1000000),pdfRp(sumOps/1000000),'','']],
+      footStyles:{fillColor:[219,234,254],textColor:[30,64,175],fontStyle:'bold',fontSize:6.6,cellPadding:1.5},
       styles:{fontSize:6.6,cellPadding:1.5,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
       columnStyles:{0:{cellWidth:7},1:{cellWidth:28},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:19},5:{cellWidth:19},6:{cellWidth:31},7:{cellWidth:55}}});
-    y=doc.lastAutoTable.finalY+6;
+    y=doc.lastAutoTable.finalY+3.5;
+    doc.setFontSize(6.8);doc.setFont('helvetica','italic');doc.setTextColor(100,116,139);
+    doc.text('Catatan: tabel menampilkan kunjungan TERAKHIR setiap unit SPPG. Total seluruh kunjungan dalam lingkup: '+allSppgRecs.length+' rekaman dari '+seenSppgUnits.size+' unit SPPG.',12,y,{maxWidth:186});
+    y+=6;
   }else{doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(120);doc.text('Belum ada rekaman monitoring SPPG dalam lingkup.',12,y+3);y+=8;}
 
   /* E. Lensa Ekonomi Daerah (5 skor terpisah per kabupaten) */
