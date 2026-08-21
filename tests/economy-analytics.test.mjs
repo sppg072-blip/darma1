@@ -93,15 +93,16 @@ test('KDMP tidak dihitung sebagai rekaman SPPG; kab kosong → null bukan 0', ()
   assert.equal(kosong.pillars.serapan.utilisasiPct, null);
 });
 
-test('Pemisahan hitungan: nPrimary (kunjungan utama) vs nNaker (form responden)', () => {
+test('Pemisahan hitungan: kunjungan SPPG vs form NAKER vs total rekaman', () => {
   const rows = computeEconomyAnalytics({ units: UNITS, monitoring: MONITORING }, ['Kab. Test Satu', 'Kab. Test Dua']);
   const satu = rows.find(r => r.kab === 'Kab. Test Satu');
-  /* m1+m2 = 2 kunjungan utama; n1+n2 = 2 form NAKER */
-  assert.equal(satu.nPrimary, 2);
+  /* m1+m2 = 2 kunjungan SPPG; n1+n2 = 2 form NAKER */
+  assert.equal(satu.nSppgVisits, 2);
   assert.equal(satu.nNaker, 2);
   assert.equal(satu.nRecords, 4);
+  assert.equal(satu.nPrimary, 2); /* SPPG+KDMP = 2 (tidak ada KDMP di fixture) */
   const dua = rows.find(r => r.kab === 'Kab. Test Dua');
-  assert.equal(dua.nPrimary, 1);
+  assert.equal(dua.nSppgVisits, 1);
   assert.equal(dua.nNaker, 0);
 });
 

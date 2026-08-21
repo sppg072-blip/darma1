@@ -273,7 +273,7 @@ function exportPdfDash(){
   const econ=computeEconomyAnalytics({units:list,monitoring:scopedMon},Object.keys(KABUPATEN));
   const fmtP2=v=>v==null?'-':(v>=0?'+':'')+v.toFixed(1)+'%';
   doc.autoTable({startY:yE,
-    head:[['Kabupaten/Kota','Dana BGN (top-up)','Local Content','Ke Koperasi/Desa','Delta Harga','Pekerja','Payroll (bln)','Serapan','n (kunj)']],
+    head:[['Kabupaten/Kota','Dana BGN (top-up)','Local Content','Ke Koperasi/Desa','Delta Harga','Pekerja','Payroll (bln)','Serapan','n (SPPG)']],
       body:econ.map(r=>{const p=r.pillars;return [
         r.kab,
         p.dana.topUpRp==null?'-':pdfRp(p.dana.topUpRp/1000000),
@@ -283,12 +283,12 @@ function exportPdfDash(){
         p.naker.pekerja==null?'-':String(p.naker.pekerja),
         p.naker.payrollRp==null?'-':pdfRp(p.naker.payrollRp/1000000),
         p.serapan.utilisasiPct==null?'-':p.serapan.utilisasiPct.toFixed(1)+'%',
-        String(r.nPrimary)];}),
+        String(r.nSppgVisits)];}),
     styles:{fontSize:7,cellPadding:1.8,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
     columnStyles:{0:{cellWidth:32},1:{cellWidth:26},2:{cellWidth:20},3:{cellWidth:22},4:{cellWidth:18},5:{cellWidth:14},6:{cellWidth:26},7:{cellWidth:15},8:{cellWidth:9}}});
   let yE2=doc.lastAutoTable.finalY+5;
   doc.setFontSize(6.8);doc.setFont('helvetica','italic');doc.setTextColor(100,116,139);
-  doc.text('Catatan metodologi: indikator proksi kawasan MBG, BUKAN statistik resmi (bukan PDRB/inflasi BPS). Nilai uang = rupiah penuh (konversi presisi dari skala Rp Juta 6-desimal). n = jumlah kunjungan monitoring utama (SPPG/KDMP); form NAKER hanya dipakai pilar Ketenagakerjaan. Delta harga = rata-rata perubahan beras/ayam/telur/susu (bulan ini vs lalu). Skor antar-pilar tidak digabung (tanpa komposit).',12,yE2,{maxWidth:186});
+  doc.text('Catatan metodologi: indikator proksi kawasan MBG, BUKAN statistik resmi (bukan PDRB/inflasi BPS). Nilai uang = rupiah penuh (konversi presisi dari skala Rp Juta 6-desimal). n = jumlah kunjungan monitoring SPPG (sumber pilar Dana, Local Content, Harga, Serapan); form NAKER hanya untuk pilar Ketenagakerjaan; monitoring KDMP tidak dipakai lensa ini (instrumen berbeda, tanpa field keuangan/pangan/upah). Delta harga = rata-rata perubahan beras/ayam/telur/susu (bulan ini vs lalu). Skor antar-pilar tidak digabung (tanpa komposit).',12,yE2,{maxWidth:186});
   pdfFoot(doc);
   doc.save('DARMA-1_LaporanRingkasan_'+new Date().toISOString().slice(0,10)+'.pdf');
   toast('📄 Laporan ringkasan (cerminan dashboard) terunduh');
