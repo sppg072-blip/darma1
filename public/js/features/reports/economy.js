@@ -66,7 +66,7 @@ function renderEconLens(){
     const hargaTxt = p.harga.changePct == null ? '—' : (p.harga.changePct >= 0 ? '▲ +' + p.harga.changePct.toFixed(1) + '%' : '▼ ' + p.harga.changePct.toFixed(1) + '%');
     const kosong = r.nRecords === 0;
     return `<div class="el-card${kosong ? ' el-empty' : ''}">
-      <div class="el-head"><span class="el-kab">📍 ${escHtml(r.kab)}</span><span class="el-meta">${r.nUnitsSppg} SPPG · ${r.nRecords} rekaman monev</span></div>
+      <div class="el-head"><span class="el-kab">📍 ${escHtml(r.kab)}</span><span class="el-meta">${r.nUnitsSppg} SPPG · ${r.nPrimary} kunjungan monitoring${r.nNaker ? ' · ' + r.nNaker + ' form Naker' : ''}</span></div>
       ${kosong ? '<div class="el-nodata">Belum ada monev di wilayah ini — panel terisi otomatis setelah form monitoring SPPG tersimpan.</div>' : `
       <div class="el-rows">
         ${pillarRow('🏦','Dana BGN', PILLAR_HINTS.dana,

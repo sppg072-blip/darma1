@@ -45,6 +45,9 @@ export function computeEconomyAnalytics(db, kabupatenKeys){
     const kabUnits = units.filter(u => u.kab === kab);
     const sppgUnits = kabUnits.filter(u => u.jenis === 'SPPG');
     const kabRecs = monitoring.filter(m => { const u = unitById(m.unitId); return !!u && u.kab === kab; });
+    /* pembeda: kunjungan utama (SPPG/KDMP) vs form NAKER (per responden) */
+    const kabPrimary = kabRecs.filter(m => { const kk = recordKind(m, unitById(m.unitId)); return kk === 'SPPG' || kk === 'KDMP'; });
+    const kabNakerCount = kabRecs.length - kabPrimary.length;
 
     /* rekaman SPPG terbaru per unit */
     const latest = sppgUnits.map(u => {
@@ -155,6 +158,8 @@ export function computeEconomyAnalytics(db, kabupatenKeys){
       kab,
       nUnitsSppg: sppgUnits.length,
       nRecords: kabRecs.length,
+      nPrimary: kabPrimary.length,
+      nNaker: kabNakerCount,
       pillars: { dana, lokal, harga, naker, serapan },
     };
   });

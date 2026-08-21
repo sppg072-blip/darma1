@@ -93,6 +93,18 @@ test('KDMP tidak dihitung sebagai rekaman SPPG; kab kosong → null bukan 0', ()
   assert.equal(kosong.pillars.serapan.utilisasiPct, null);
 });
 
+test('Pemisahan hitungan: nPrimary (kunjungan utama) vs nNaker (form responden)', () => {
+  const rows = computeEconomyAnalytics({ units: UNITS, monitoring: MONITORING }, ['Kab. Test Satu', 'Kab. Test Dua']);
+  const satu = rows.find(r => r.kab === 'Kab. Test Satu');
+  /* m1+m2 = 2 kunjungan utama; n1+n2 = 2 form NAKER */
+  assert.equal(satu.nPrimary, 2);
+  assert.equal(satu.nNaker, 2);
+  assert.equal(satu.nRecords, 4);
+  const dua = rows.find(r => r.kab === 'Kab. Test Dua');
+  assert.equal(dua.nPrimary, 1);
+  assert.equal(dua.nNaker, 0);
+});
+
 test('normalizeScore: min-maks antar kabupaten, tanpa komposit', () => {
   assert.equal(normalizeScore(10, [10, 20, 30]), 0);
   assert.equal(normalizeScore(20, [10, 20, 30]), 50);
