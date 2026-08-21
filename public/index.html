@@ -325,16 +325,20 @@
   <!-- TAB: HISTORI -->
   <div class="tcont" id="tab-hist">
     <div style="display:flex;gap:6px;margin-bottom:9px;flex-wrap:wrap">
-      <select id="fHUnit" class="fc" style="flex:2;min-width:140px" onchange="renderHist()"><option value="">Semua Unit</option></select>
+      <div style="flex:2;min-width:190px;position:relative">
+        <i class="fas fa-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:11px"></i>
+        <input type="text" id="fHSearch" class="fc" placeholder="Cari nama unit / petugas / temuan..." style="padding-left:30px" oninput="renderHist()"/>
+      </div>
+      <select id="fHUnit" class="fc" style="flex:1;min-width:140px" onchange="renderHist()"><option value="">Semua Unit</option></select>
       <input type="date" id="fHTgl" class="fc" style="flex:1;min-width:130px" onchange="renderHist()"/>
-      <button class="btn bx" onclick="document.getElementById('fHUnit').value='';document.getElementById('fHTgl').value='';renderHist();" title="Reset Filter">✕ Reset</button>
+      <button class="btn bx" onclick="document.getElementById('fHSearch').value='';document.getElementById('fHUnit').value='';document.getElementById('fHTgl').value='';renderHist();" title="Reset Filter">✕ Reset</button>
     </div>
     <div style="display:flex;gap:6px;margin-bottom:10px">
       <button class="btn bg bsm" onclick="exportXlsx('monitoring',true)"><i class="fas fa-file-excel"></i> Excel</button>
       <button class="btn bd bsm" onclick="exportPdfMonitoring()"><i class="fas fa-file-pdf"></i> PDF</button>
       <button class="btn bd bsm" id="btnClearMon" onclick="confirmClearMon()" style="margin-left:auto"><i class="fas fa-trash"></i> Hapus Semua</button>
     </div>
-    <div class="fhint" style="margin:-4px 0 8px">⬇️ Output Excel/PDF histori <b>mengikuti filter</b> (unit, tanggal) yang dipilih di atas.</div>
+    <div class="fhint" style="margin:-4px 0 8px">⬇️ Output Excel/PDF histori <b>mengikuti filter</b> (pencarian, unit, tanggal) yang dipilih di atas.</div>
     <div id="histList"></div>
   </div>
 

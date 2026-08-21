@@ -8,9 +8,16 @@ const monitoringRepository = getAppContext().repositories.monitoring;
 ============================================================ */
 function renderHist(){
   const fu=getVal('fHUnit'),ft=getVal('fHTgl');
+  const fq=(getVal('fHSearch')||'').toLowerCase(); /* pencarian teks histori: nama unit / petugas / temuan / rekom / tanggal */
   let list=[...DB.monitoring].sort((a,b)=>b.tgl.localeCompare(a.tgl)||b.id.localeCompare(a.id));
   if(fu)list=list.filter(m=>m.unitId===fu);
   if(ft)list=list.filter(m=>m.tgl===ft);
+  if(fq)list=list.filter(m=>{
+    const u=unitById(m.unitId)||{};
+    const f=(m.form&&m.form.fields)||{};
+    const hay=(u.nama+' '+(m.petugas||'')+' '+(m.temuan||'')+' '+(m.rekom||'')+' '+(m.tgl||'')+' '+(f.sp109||'')+' '+(f.nk101||'')).toLowerCase();
+    return hay.includes(fq);
+  });
   const el=document.getElementById('histList');
   if(!el)return;
   if(!DB.monitoring.length){
@@ -27,8 +34,8 @@ function renderHist(){
   if(!list.length){
     el.innerHTML=`<div class="empty" style="padding:30px 10px">
       <i class="fas fa-filter"></i>
-      <p>Tidak ada riwayat monitoring untuk filter unit/tanggal yang dipilih.</p>
-      <button class="btn bx bsm" style="margin-top:8px" onclick="document.getElementById('fHUnit').value='';document.getElementById('fHTgl').value='';renderHist();">✕ Reset Filter Histori</button>
+      <p>Tidak ada riwayat monitoring untuk filter unit/tanggal/pencarian yang dipilih.</p>
+      <button class="btn bx bsm" style="margin-top:8px" onclick="document.getElementById('fHSearch').value='';document.getElementById('fHUnit').value='';document.getElementById('fHTgl').value='';renderHist();">✕ Reset Filter Histori</button>
     </div>`;
     return;
   }

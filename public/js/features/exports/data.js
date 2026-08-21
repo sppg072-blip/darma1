@@ -52,9 +52,11 @@ const TBL_ALT={alternateRowStyles:{fillColor:[239,246,255]}};
 function exportPdfMonitoring(){
   const jsPDF=getJsPDF();if(!jsPDF)return;
   const fu=getVal('fHUnit'),ft=getVal('fHTgl');
+  const fq=(getVal('fHSearch')||'').toLowerCase();
   let list=[...DB.monitoring].sort((a,b)=>a.tgl.localeCompare(b.tgl));
   if(fu)list=list.filter(m=>m.unitId===fu);
   if(ft)list=list.filter(m=>m.tgl===ft);
+  if(fq)list=list.filter(m=>{const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};return (u.nama+' '+(m.petugas||'')+' '+(m.temuan||'')+' '+(m.rekom||'')+' '+(m.tgl||'')+' '+(f.sp109||'')+' '+(f.nk101||'')).toLowerCase().includes(fq);});
   if(!list.length){toast('Tidak ada data monitoring sesuai filter','e');return;}
   const doc=new jsPDF({orientation:'l',unit:'mm',format:'a4'});
   const filterDesc=['Filter: '+(fu?('Unit: '+(unitById(fu)||{}).nama):'Semua Unit'),
@@ -368,8 +370,10 @@ function exportXlsx(mode,useFilters){
   let mons=DB.monitoring;
   if(useFilters){
     const fu=getVal('fHUnit'),ft=getVal('fHTgl');
+    const fq=(getVal('fHSearch')||'').toLowerCase();
     if(fu)mons=mons.filter(m=>m.unitId===fu);
     if(ft)mons=mons.filter(m=>m.tgl===ft);
+    if(fq)mons=mons.filter(m=>{const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};return (u.nama+' '+(m.petugas||'')+' '+(m.temuan||'')+' '+(m.rekom||'')+' '+(m.tgl||'')+' '+(f.sp109||'')+' '+(f.nk101||'')).toLowerCase().includes(fq);});
     if(!mons.length){toast('Tidak ada data monitoring sesuai filter untuk diekspor','e');return;}
   }
   const mrows=[...mons].sort((a,b)=>a.tgl.localeCompare(b.tgl)).map(m=>{
