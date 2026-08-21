@@ -143,10 +143,12 @@ function computedGridValue(fld,data,row){
   let total=0,has=false;fld.rows.filter(item=>!item.computed).forEach(item=>{const value=data&&data[item.id];if(value!==''&&value!==null&&value!==undefined&&Number.isFinite(Number(value))){total+=Number(value);has=true;}});
   return has?Number(total.toFixed(6)):'';
 }
+function fieldCode(fld,i){const c=(fld&&fld.code)||((fld&&fld.id&&fld.id.match(/^(?:sp|nk)(\d+)/)||[])[1]);return c?String(c):(i!=null?String(i+1):'');}
 function gridPdf(doc,fld,data,filled,y,PH){
   const d=data||{},fieldUnit=unitForOutput(fld),totalRows=fld.rows.map((row,index)=>row.computed?index:-1).filter(index=>index>=0);
   const markTotalCells=dataTable=>{dataTable.cell.styles.fontStyle='bold';dataTable.cell.styles.fillColor=[236,253,245];dataTable.cell.styles.textColor=[4,120,87];};
-  y=formTitle(doc,fld.label+(fieldUnit?' ('+fieldUnit+')':''),y,PH);
+  const kode=fieldCode(fld);
+  y=formTitle(doc,(kode?kode+'. ':'')+fld.label+(fieldUnit?' ('+fieldUnit+')':''),y,PH);
   if(fld.fields&&fld.fields.length){
     const head=['Item'].concat(fld.fields.map(column=>{const unit=unitForOutput(column,fld);return column.label+(unit?' ('+unit+')':'');}));
     const body=fld.rows.map(row=>{const rowData=computedGridValue(fld,d,row);return [row.label].concat(fld.fields.map(column=>{const value=rowData&&rowData[column.id];return filled?currencyValueForOutput(column,fld,value):'........................';}));});
@@ -290,7 +292,8 @@ function generateFormPdf(jenis,filled,rec){
 /* ===== Generator Excel form (SheetJS) — file .xlsx persis struktur form ===== */
 function gridXls(aoa,fld,data,filled,currencyCells){
   const d=data||{},fieldUnit=unitForOutput(fld);
-  aoa.push(['(tabel)',fld.label+(fieldUnit?' ('+fieldUnit+')':''),'']);
+  const kode=fieldCode(fld);
+  aoa.push(['(tabel)',(kode?kode+'. ':'')+fld.label+(fieldUnit?' ('+fieldUnit+')':''),'']);
   if(fld.fields&&fld.fields.length){
     aoa.push(['Item'].concat(fld.fields.map(column=>{const unit=unitForOutput(column,fld);return column.label+(unit?' ('+unit+')':'');})));
     fld.rows.forEach(row=>{
