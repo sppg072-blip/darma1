@@ -295,10 +295,9 @@
       <button class="btn bp bsm" id="btnAddUnit" onclick="openUnitModal()"><i class="fas fa-plus"></i> Tambah Unit</button>
       <button class="btn bg bsm" onclick="exportXlsx('unit')"><i class="fas fa-file-excel"></i> Excel</button>
       <button class="btn bd bsm" onclick="exportPdfUnits()"><i class="fas fa-file-pdf"></i> PDF</button>
-      <button class="btn bs bsm" id="btnBackup" onclick="exportJSON()"><i class="fas fa-download"></i> Backup</button>
+      <button class="btn bs bsm" id="btnBackup" onclick="openBackupMenu()"><i class="fas fa-download"></i> Backup</button>
       <button class="btn bs bsm" id="btnRestore" onclick="document.getElementById('impJson').click()"><i class="fas fa-upload"></i> Restore</button>
-      <button class="btn bs bsm" id="btnImportUnits" onclick="document.getElementById('impUnits').click()" title="Tambah unit dari file JSON (gabung, tanpa menghapus data lain)"><i class="fas fa-file-import"></i> Impor Unit</button>
-      <input type="file" id="impUnits" accept=".json,application/json" style="display:none" onchange="importUnitsJSON(event)"/>
+      <button class="btn bs bsm" id="btnImportUnits" onclick="openUnitsImportWizard()" title="Impor unit dari JSON dengan pratinjau & validasi kemiripan"><i class="fas fa-file-import"></i> Impor Unit</button>
       <button class="btn bp bsm" id="btnImportTOptimal" onclick="openTOptimalProcessMenu()"><i class="fas fa-gears"></i> Proses T-OPTIMAL</button>
       <input type="file" id="impJson" accept=".json" style="display:none" onchange="importJSON(event)"/>
       <input type="file" id="impTOptimal" accept=".json,application/json" style="display:none" onchange="importTOptimal(event)"/>
@@ -559,6 +558,43 @@
     <div class="mfoot">
       <button class="btn bd" onclick="exportMonTablePdf()"><i class="fas fa-file-pdf"></i> Cetak PDF (semua baris filter)</button>
       <button class="btn bx" onclick="closeMonTable()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: WIZARD IMPOR UNIT ================= -->
+<div id="mImportUnits" class="moverlay hidden">
+  <div class="mbox mon-table-box">
+    <div class="mhead"><h3><i class="fas fa-file-import"></i> Impor Unit — Pratinjau &amp; Validasi</h3><button class="mclose" onclick="closeUnitsImportWizard()">×</button></div>
+    <div class="mon-table-tools">
+      <div class="mt-filters">
+        <button class="btn bp bsm" onclick="document.getElementById('impUnits').click()"><i class="fas fa-folder-open"></i> Pilih File JSON</button>
+        <input type="file" id="impUnits" accept=".json,application/json" style="display:none" onchange="handleUnitsImportFile(event)"/>
+        <select id="iuJenis" class="fc" onchange="iuFilterChange()"><option value="">Semua Jenis</option><option value="SPPG">🍳 SPPG</option><option value="KDMP">🏪 KDMP</option></select>
+        <input type="search" id="iuSearch" class="fc" placeholder="🔍 Cari nama/kecamatan/kandidat..." oninput="iuFilterChange()"/>
+        <button class="btn bx bsm" onclick="iuSelectAll(true)">✓ Semua</button>
+        <button class="btn bx bsm" onclick="iuSelectAll(false)">✕ Kosongkan</button>
+      </div>
+      <div class="mt-meta" id="iuMeta">Pilih file JSON berisi {units:[...]}.</div>
+    </div>
+    <div class="mon-table-body" id="iuBody"></div>
+    <div class="mfoot">
+      <button class="btn bp" onclick="commitUnitsImport()"><i class="fas fa-check-double"></i> Proses Baris Terpilih</button>
+      <button class="btn bx" onclick="closeUnitsImportWizard()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: MENU BACKUP ================= -->
+<div id="mBackupMenu" class="moverlay hidden">
+  <div class="mbox" style="max-width:430px">
+    <div class="mhead"><h3><i class="fas fa-download"></i> Backup Data</h3><button class="mclose" onclick="closeM('mBackupMenu')">×</button></div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:9px">
+      <button class="btn bp" onclick="exportJSONScope('all')"><i class="fas fa-database"></i> Semua Data <small style="font-weight:600">(unit + monitoring + pengguna — untuk Restore)</small></button>
+      <button class="btn bs" onclick="exportJSONScope('units')"><i class="fas fa-boxes"></i> Master Unit — Semua <small style="font-weight:600">(untuk Impor Unit di instansi lain)</small></button>
+      <button class="btn bs" onclick="exportJSONScope('sppg')"><i class="fas fa-utensils"></i> Master Unit — SPPG saja</button>
+      <button class="btn bs" onclick="exportJSONScope('kdmp')"><i class="fas fa-store"></i> Master Unit — KDMP saja</button>
+      <div class="fhint">File <b>unit saja</b> dipakai dengan tombol <b>Impor Unit</b> (gabung + validasi), bukan Restore yang mengganti seluruh data.</div>
     </div>
   </div>
 </div>

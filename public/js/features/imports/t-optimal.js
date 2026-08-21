@@ -527,3 +527,5 @@ Object.assign(globalThis, {
   resetTOptimalFilters, selectAllTOptimal, toggleTOptimalRow, assignTOptimalUnit, filterTOptimalCandidateOptions, changeTOptimalMode, commitMappingProcess, commitCoordinateProcess, commitTOptimalImport,
   openTOptimalImportMode, closeTOptimalImportMode, chooseTOptimalImportMode
 });
+/* Dipakai ulang oleh wizard 'Impor Unit' (features/imports/units-import.js) */
+Object.assign(globalThis, { toptMatch: { norm, compactName, levenshteinRatio, coordinateDistanceMeters, rankUnitCandidates } });

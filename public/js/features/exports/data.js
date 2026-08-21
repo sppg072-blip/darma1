@@ -412,38 +412,21 @@ function importJSON(ev){
 }
 
 
-/* IMPOR UNIT (GABUNG) — tambah unit dari file JSON tanpa menghapus data lain.
-   Aman untuk file sampling DJPb {units:[...]} maupun backup penuh (diambil units-nya saja).
-   Duplikat dilewati berdasarkan kombinasi nama+kecamatan+kabupaten. */
-function importUnitsJSON(ev){
-  const f=ev.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=()=>{try{
-    const d=JSON.parse(r.result);
-    const list=Array.isArray(d)?d:(Array.isArray(d.units)?d.units:null);
-    if(!list)throw 0;
-    const norm=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
-    const key=u=>norm(u.nama)+'|'+norm(u.kec)+'|'+norm(u.kab);
-    const existId=new Set(DB.units.map(u=>u.id));
-    const existKey=new Set(DB.units.map(key));
-    let added=0,skipped=0;
-    list.forEach(src=>{
-      const jenis=String((src&&src.jenis)||'KDMP').toUpperCase();
-      if(!src||!src.nama||(jenis!=='SPPG'&&jenis!=='KDMP')){skipped++;return;}
-      const u={id:''};
-      ['jenis','nama','ref','status','kab','kec','desa','alamat','lat','lng','pic','telp','note','yayasan','kapasitas','sekolah','slhs','mulai','anggota','peran','usaha'].forEach(k=>{u[k]=src[k]===undefined?'':src[k];});
-      u.jenis=jenis;
-      if(existKey.has(key(u))){skipped++;return;}
-      let id=src.id||uid('u');while(existId.has(id))id=uid('u');
-      u.id=id;existId.add(id);existKey.add(key(u));
-      DB.units.push(u);persist('units',u);added++;
-    });
-    renderAll();
-    toast(added?`✅ ${added} unit ditambahkan${skipped?` · ${skipped} dilewati (duplikat/tidak valid)`:''}`:'Tidak ada unit baru — semua duplikat atau tidak valid',added?'':'e');
-  }catch(e){toast('File unit tidak valid','e');}};
-  r.readAsText(f);ev.target.value='';
+/* MENU BACKUP — pilih cakupan: semua data (untuk Restore) atau unit saja per jenis (untuk Impor Unit/gabung) */
+function openBackupMenu(){ document.getElementById('mBackupMenu').classList.remove('hidden'); }
+function exportJSONScope(scope){
+  const tgl = new Date().toISOString().slice(0,10);
+  let data, name;
+  if (scope === 'all'){ data = DB; name = 'DARMA-1_backup_'+tgl+'_SEMUA.json'; }
+  else if (scope === 'units'){ data = { units: DB.units }; name = 'DARMA-1_unit_'+tgl+'_SEMUA.json'; }
+  else if (scope === 'sppg'){ data = { units: DB.units.filter(u => u.jenis === 'SPPG') }; name = 'DARMA-1_unit_'+tgl+'_SPPG.json'; }
+  else { data = { units: DB.units.filter(u => u.jenis === 'KDMP') }; name = 'DARMA-1_unit_'+tgl+'_KDMP.json'; }
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  closeM('mBackupMenu');
+  toast('📥 ' + name + ' terunduh');
 }
 
 /* Public action bridge for existing HTML controls. */
 Object.assign(globalThis, { STATUS_PLAIN, HASIL_PLAIN, ASPEK_PLAIN, SLHS_PLAIN, TBL_STYLE, TBL_HEAD, TBL_ALT });
-Object.assign(globalThis, { stripEmoji, getJsPDF, pdfHead, pdfFoot, exportPdfMonitoring, exportPdfUnits, exportPdfUnitDetail, exportPdfDash, exportMonTablePdf, exportXlsxUnit, exportXlsx, exportJSON, importJSON, importUnitsJSON });
+Object.assign(globalThis, { stripEmoji, getJsPDF, pdfHead, pdfFoot, exportPdfMonitoring, exportPdfUnits, exportPdfUnitDetail, exportPdfDash, exportMonTablePdf, exportXlsxUnit, exportXlsx, exportJSON, importJSON, openBackupMenu, exportJSONScope });
