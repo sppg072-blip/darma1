@@ -5,103 +5,6 @@ import { getSppgAnalytics, formatSppgAnalytics } from '../../domain/monitoring/o
 /* ============================================================
    CETAK FORM — output persis seperti layout Excel/Juknis
 ============================================================ */
-function escP(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-const PRINT_CSS="@page{size:A4 portrait;margin:12mm;}#printRoot,#printRoot *{box-sizing:border-box;}#printRoot{font-family:'Times New Roman',serif;color:#000;font-size:11px;line-height:1.4;}#printRoot h1{font-size:14px;text-align:center;margin:0 0 2px;text-transform:uppercase;}#printRoot h2{font-size:12px;text-align:center;margin:0 0 8px;}#printRoot .sub{text-align:center;font-size:10px;margin-bottom:9px;font-style:italic;}#printRoot table{border-collapse:collapse;width:100%;margin-bottom:8px;}#printRoot th,#printRoot td{border:1px solid #000;padding:4px 6px;vertical-align:top;}#printRoot th{background:#e8e8e8;text-align:center;font-size:10px;}#printRoot .kol-no{width:6%;text-align:center;}#printRoot .kol-skor{width:7%;text-align:center;font-size:14px;font-family:Arial;}#printRoot .meta .l{width:23%;background:#f4f4f4;font-weight:bold;}#printRoot .secap{font-weight:bold;background:#f0f0f0;padding:5px 7px;border:1px solid #000;border-bottom:none;font-size:11px;text-transform:uppercase;}#printRoot .hasil{margin-top:8px;font-size:12px;text-align:center;border:1.5px solid #000;padding:7px;}#printRoot .hasil b{font-size:13px;}#printRoot .ket{color:#666;font-size:9px;}#printRoot .small{font-size:9px;color:#444;}#printRoot .foot{margin-top:10px;font-size:9px;text-align:center;border-top:1px solid #000;padding-top:4px;color:#333;}#printRoot .ttd{margin-top:26px;display:flex;justify-content:space-between;font-size:11px;}#printRoot .ttd .b{text-align:center;width:38%;}";
-function printHTML(bodyHtml,title){
-  const root=document.getElementById('printRoot');
-  root.innerHTML='<style>'+PRINT_CSS+'</style>'+bodyHtml;
-  document.title=title||'SIMON-MBG';
-  document.body.classList.add('printing');
-  let cleaned=false;
-  const done=function(){if(cleaned)return;cleaned=true;document.body.classList.remove('printing');root.innerHTML='';window.removeEventListener('afterprint',done);};
-  window.addEventListener('afterprint',done);
-  try{window.focus();}catch(e){}
-  setTimeout(function(){try{window.print();}catch(e){console.warn('print',e);}setTimeout(done,1500);},180);
-}
-function printHeader(tgl,petugas,u,rows){
-  const tr=rows.map(r=>`<tr>${r.map((c,i)=>`<td${i%2===0?' class="l"':''}>${escP(c)}</td>`).join('')}</tr>`).join('');
-  return `<table class="meta">${tr}</table>`;
-}
-function buildKdmpPrintHtml(m,blank){
-  const f=(m&&m.form)||{}, secs=f.sections||[], comp=f.compliance||[];
-  const u=(m&&m.unitId)?unitById(m.unitId):null;
-  const tgl=(m&&m.tgl)||'', petugas=(m&&m.petugas)||'';
-  const pAll = [petugas, (m&&m.form&&m.form.fields&&m.form.fields.sp109)?'Wawancara: '+m.form.fields.sp109:''].filter(Boolean).join(' | ');
-  const hl=(f.hasil&&HASIL_META[f.hasil])?HASIL_META[f.hasil].label:'';
-  let h='<h1>Kuesioner Survei KPPN</h1>';
-  h+='<h2>Monitoring dan Evaluasi Koperasi Desa/Kelurahan Merah Putih (KDMP/KKMP)</h2>';
-  h+='<div class="sub">MONEV KDMP/KKMP &mdash; &ldquo;BANGUNAN PERMANEN&rdquo;</div>';
-  h+=printHeader(tgl,pAll,u,[
-    ['Nama KDMP/KKMP',u?u.nama:'........................','Tanggal Survei',tgl?fmtD(tgl):'........................'],
-    ['Kabupaten/Kota',u?u.kab:'........................','Kecamatan',u?u.kec:'........................'],
-    ['Desa/Kelurahan',u?u.desa:'........................','Petugas Survei',pAll||'........................'],
-    ['Alamat',u?u.alamat:'........................................................................................................................','','']
-  ]);
-  h+='<table><thead><tr><th class="kol-skor">Skor</th><th style="text-align:left">Kriteria Penilaian</th></tr></thead><tbody>'+
-     '<tr><td class="kol-skor">1</td><td>Sangat Tidak Baik / Sangat Tidak Setuju</td></tr>'+
-     '<tr><td class="kol-skor">2</td><td>Kurang Baik / Kurang Setuju</td></tr>'+
-     '<tr><td class="kol-skor">3</td><td>Baik</td></tr>'+
-     '<tr><td class="kol-skor">4</td><td>Sangat Baik / Sangat Setuju</td></tr></tbody></table>';
-  FORM_KDMP.forEach((sec,si)=>{
-    const scores=(secs[si]&&secs[si].scores)||[];
-    h+=`<div class="secap">${sec.kode}. ${escP(sec.judul)}</div>`;
-    h+='<table><thead><tr><th class="kol-no">No</th><th style="text-align:left">Pernyataan</th><th class="kol-skor">1</th><th class="kol-skor">2</th><th class="kol-skor">3</th><th class="kol-skor">4</th></tr></thead><tbody>';
-    sec.items.forEach((it,ii)=>{
-      const sel=blank?0:(scores[ii]||0);
-      h+=`<tr><td class="kol-no">${ii+1}</td><td>${escP(it)}</td>`;
-      [1,2,3,4].forEach(v=>{h+=`<td class="kol-skor">${sel===v?'<b>&#10003;</b>':'&#9744;'}</td>`;});
-      h+='</tr>';
-    });
-    h+='</tbody></table>';
-  });
-  h+='<div class="secap">Kepatuhan Regulasi &amp; Akuntabilitas (Ya/Tidak)</div>';
-  h+='<table><thead><tr><th class="kol-no">No</th><th style="text-align:left">Pernyataan Konfirmasi</th><th>Ya</th><th>Tidak</th></tr></thead><tbody>';
-  COMPLIANCE_KDMP.forEach((c,ci)=>{
-    const sel=blank?null:comp[ci];
-    h+=`<tr><td class="kol-no">${ci+1}</td><td>${escP(c)}</td><td class="kol-skor">${sel==='ya'?'<b>&#10003;</b>':'&#9744;'}</td><td class="kol-skor">${sel==='tidak'?'<b>&#10003;</b>':'&#9744;'}</td></tr>`;
-  });
-  h+='</tbody></table>';
-  h+='<table><thead><tr><th>Nilai Rata-rata</th><th>Kategori</th></tr></thead><tbody>'+
-     '<tr><td style="text-align:center">3,26 &ndash; 4,00</td><td>Sangat Baik</td></tr>'+
-     '<tr><td style="text-align:center">2,51 &ndash; 3,25</td><td>Baik</td></tr>'+
-     '<tr><td style="text-align:center">1,76 &ndash; 2,50</td><td>Kurang Baik</td></tr>'+
-     '<tr><td style="text-align:center">1,00 &ndash; 1,75</td><td>Sangat Kurang</td></tr></tbody></table>';
-  if(!blank&&f.avg!=null){
-    h+=`<div class="hasil">Nilai Rata-rata: <b>${f.avg}</b> &nbsp;|&nbsp; Kategori: <b>${escP(f.kategori||'')}</b> &nbsp;|&nbsp; Status Monitoring: <b>${escP(hl)}</b></div>`;
-  }
-  h+=`<div class="ttd"><div class="b">Mengetahui,<br>Petugas Survei</div><div class="b">${u?escP(u.kab):'...........'}, ${tgl?fmtD(tgl):'...............'}<br>Responden / Pengurus KDMP</div></div>`;
-  h+=`<div class="foot">DARMA-1 &mdash; Kuesioner Monev KDMP/KKMP &middot; dicetak ${new Date().toLocaleString('id-ID')}</div>`;
-  return h;
-}
-function buildSppgPrintHtml(m,blank){
-  const f=(m&&m.form)||{}, fields=f.fields||{};
-  const u=(m&&m.unitId)?unitById(m.unitId):null;
-  const tgl=(m&&m.tgl)||'', petugas=(m&&m.petugas)||'';
-  const pAll = [petugas, (m&&m.form&&m.form.fields&&m.form.fields.sp109)?'Wawancara: '+m.form.fields.sp109:''].filter(Boolean).join(' | ');
-  const hl=(m&&m.hasil&&HASIL_META[m.hasil])?HASIL_META[m.hasil].label:'';
-  let h='<h1>Daftar Pertanyaan Survey Penyaluran MBG</h1>';
-  h+='<div class="sub">Survey Pemantauan Pelaksanaan Makan Bergizi Gratis &mdash; SPPG (estimasi &plusmn;45 menit)</div>';
-  h+=printHeader(tgl,pAll,u,[
-    ['Nama SPPG',u?u.nama:'........................','Tanggal Survei',tgl?fmtD(tgl):'........................'],
-    ['Kabupaten/Kota',u?u.kab:'........................','Petugas Survei',pAll||'........................'],
-    ['Responden (Nama)',fields.resp||'........................','Jabatan',fields.jab||'........................'],
-    ['Alamat SPPG',u?u.alamat:'........................................................................................................................','','']
-  ]);
-  const formDef=getSppgFormDefinition(f);
-  formDef.sections.forEach(sec=>{
-    h+=`<div class="secap">${escP(sec.title)}</div>`;
-    h+='<table><thead><tr><th class="kol-no">No</th><th style="text-align:left;width:46%">Pertanyaan</th><th style="text-align:left">Jawaban</th></tr></thead><tbody>';
-    sec.fields.forEach((fld,fi)=>{
-      const ans=blank?'':fieldVal(fld,fields[fld.id],true),no=fld.code||((fld.id&&fld.id.match(/^sp(\d+)/)||[])[1])||fi+1;
-      const unit=unitForOutput(fld);h+=`<tr><td class="kol-no">${escP(no)}</td><td>${escP(fld.label)}${unit?` <span class="small">(${escP(unit)})</span>`:''}</td><td>${ans?escP(ans):'<span class="ket">.........................................................................</span>'}</td></tr>`;
-    });
-    h+='</tbody></table>';
-  });
-  if(!blank&&hl){h+=`<div class="hasil">Status Monitoring: <b>${escP(hl)}</b></div>`;}
-  h+=`<div class="ttd"><div class="b">Mengetahui,<br>Petugas Survei</div><div class="b">${u?escP(u.kab):'...........'}, ${tgl?fmtD(tgl):'...............'}<br>Responden SPPG</div></div>`;
-  h+=`<div class="foot">DARMA-1 &mdash; Form Survei Penyaluran MBG (SPPG) &middot; dicetak ${new Date().toLocaleString('id-ID')}</div>`;
-  return h;
-}
 function pdfSafe(s){s=String(s==null?'':s).replace(/[\u2013\u2014]/g,'-').replace(/[\u2018\u2019\u201A\u201B]/g,"'").replace(/[\u201C\u201D\u201E]/g,'"').replace(/\u2192/g,'->').replace(/\u2026/g,'...');s=stripEmoji(s);return s.replace(/[^A-Za-z0-9 \-_.,&()/:%+*=#@!?<>"']/g,'').replace(/\s+/g,' ').trim();}
 function pdfTableHead(doc){const theme=doc.__darmaPdfTheme;if(!theme||!theme.tableHead)return TBL_HEAD;return Object.assign({},theme.tableHead,{fillColor:[...theme.tableHead.fillColor],textColor:[...theme.tableHead.textColor]});}
 function pdfLabelBackground(doc){const theme=doc.__darmaPdfTheme;return theme&&theme.labelBackground?[...theme.labelBackground]:[244,244,244];}
@@ -547,14 +450,59 @@ async function generateFormDocx(jenis, filled, rec) {
       ]
     }));
   } else {
-    children.push(new Paragraph({ text: 'LAPORAN MONITORING ' + jenis, bold: true }));
-    children.push(new Paragraph({ text: 'Unit: ' + (u?u.nama:'-') }));
-    if (f.fields) {
-      if (f.fields.sp_link_lampiran) children.push(new Paragraph({ text: 'Link Lampiran: ' + f.fields.sp_link_lampiran }));
-      if (f.fields.sp_foto_kegiatan) children.push(new Paragraph({ text: 'Dokumentasi Foto: Terlampir di sistem (Gambar Foto Kegiatan)' }));
+    /* ==== SPPG / NAKER: form lengkap — paritas dengan generateFormPdf ==== */
+    const formTypeD=(rec&&rec.formType)||(jenis==='KDMP'?'KDMP':'SPPG');
+    const formDef=formTypeD==='SPPG'?getSppgFormDefinition(f):(FORMS[formTypeD]||FORM_NAKER);
+    const fields=f.fields||{};
+    const pAllD=[rec.petugas||'',(fields.sp109)?'Wawancara: '+fields.sp109:''].filter(Boolean).join(' | ');
+    const T=(text,o={})=>new Paragraph({children:[new TextRun({text:String(text==null?'':text),bold:!!o.bold,size:o.size||20})],alignment:o.center?AlignmentType.CENTER:undefined,spacing:o.spacing});
+    const C=(text,o={})=>new TableCell({children:[new Paragraph({children:[new TextRun({text:String(text==null?'':text),bold:!!o.bold,size:18})],alignment:o.center?AlignmentType.CENTER:undefined})],width:o.width?{size:o.width,type:WidthType.PERCENTAGE}:undefined});
+    const H=(text,w)=>new TableCell({children:[new Paragraph({children:[new TextRun({text:String(text==null?'':text),bold:true,size:18})]})],width:{size:w,type:WidthType.PERCENTAGE}});
+    children.push(new Paragraph({children:[new TextRun({text:formTypeD==='NAKER'?'DAFTAR PERTANYAAN UNTUK TENAGA KERJA':'FORM SURVEI MONITORING SPPG',bold:true,size:26})],alignment:AlignmentType.CENTER,spacing:{after:80}}));
+    const idRows=[['Nama SPPG',u?u.nama:''],['Kabupaten/Kota',u?u.kab:''],['Tanggal Survei',tgl?fmtD(tgl):''],['Petugas Survei',pAllD],['Nama Responden',fields.sp107||fields.nk101||''],['Jabatan/Posisi',fields.sp108||fields.nk102||'']];
+    children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:idRows.map(r=>new TableRow({children:[C(r[0],{bold:true,width:30}),C(r[1],{width:70})]}))}));
+    formDef.sections.forEach(sec=>{
+      children.push(T(sec.title,{bold:true,spacing:{before:240,after:80}}));
+      const ng=sec.fields.filter(fl=>fl.type!=='g');
+      if(ng.length){
+        children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[
+          new TableRow({tableHeader:true,children:[H('No',7),H('Pertanyaan',48),H('Jawaban',45)]})
+        ].concat(ng.map((fl,i)=>new TableRow({children:[
+          C(fieldCode(fl,i),{center:true}),
+          C(fl.label+(unitForOutput(fl)?' ('+unitForOutput(fl)+')':'')),
+          C(filled ? (fieldVal(fl,fields[fl.id],true) || '-') : '................')
+        ]})))}));
+      }
+      sec.fields.filter(fl=>fl.type==='g').forEach(fl=>{
+        const kode=fieldCode(fl),fieldUnit=unitForOutput(fl),d=fields[fl.id]||{};
+        children.push(T((kode?kode+'. ':'')+fl.label+(fieldUnit?' ('+fieldUnit+')':''),{bold:true,spacing:{before:200,after:60}}));
+        let rows;
+        if(fl.fields&&fl.fields.length){
+          rows=[new TableRow({tableHeader:true,children:[H('Item',46)].concat(fl.fields.map(col=>H(col.label+(unitForOutput(col,fl)?' ('+unitForOutput(col,fl)+')':''),27)))})]
+          .concat(fl.rows.map(r=>{const rd=computedGridValue(fl,d,r);return new TableRow({children:[C(r.label,{bold:!!r.computed})].concat(fl.fields.map(col=>C(filled?(currencyValueForOutput(col,fl,rd&&rd[col.id])||'-'):'................',{bold:!!r.computed})))});}));
+        }else{
+          rows=[new TableRow({tableHeader:true,children:[H('Item',70),H(fieldUnit||'Nilai',30)]})]
+          .concat(fl.rows.map(r=>{const v=computedGridValue(fl,d,r);return new TableRow({children:[C(r.label,{bold:!!r.computed}),C(filled?(currencyValueForOutput(fl,null,v)||'-'):'................',{bold:!!r.computed})]});}));
+        }
+        children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:rows}));
+      });
+    });
+    if(filled&&formTypeD==='SPPG'){
+      const an=formatSppgAnalytics(getSppgAnalytics(rec,u));
+      if(an){
+        children.push(T('Rekap Kinerja Operasional SPPG',{bold:true,spacing:{before:240,after:80}}));
+        children.push(new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[
+          new TableRow({tableHeader:true,children:[H('Indikator',28),H('Target Master',24),H('Realisasi Monitoring',24),H('Capaian',12),H('Gap',12)]}),
+          new TableRow({children:[C('Porsi/hari',{bold:true}),C(an.targetPorsi??'-'),C(an.actualPorsi??'-'),C(an.utilization),C(an.gapPorsi)]}),
+          new TableRow({children:[C('Sekolah',{bold:true}),C(an.targetSekolah??'-'),C(an.actualSekolah??'-'),C(an.schoolCoverage),C(an.gapSekolah)]})
+        ]}));
+      }
     }
-    if(rec.temuan){children.push(new Paragraph({children:[new TextRun({text:'ANALISIS SURVEYOR',bold:true})],spacing:{before:240,after:80}}));children.push(new Paragraph({text:rec.temuan}));}
-    if(rec.rekom){children.push(new Paragraph({children:[new TextRun({text:'Rekomendasi / Tindak Lanjut',bold:true})],spacing:{before:160,after:60}}));children.push(new Paragraph({text:rec.rekom}));}
+    if(rec.temuan){children.push(T('ANALISIS SURVEYOR / TEMUAN',{bold:true,spacing:{before:240,after:80}}));children.push(new Paragraph({text:rec.temuan}));}
+    if(rec.rekom){children.push(T('Rekomendasi / Tindak Lanjut',{bold:true,spacing:{before:160,after:60}}));children.push(new Paragraph({text:rec.rekom}));}
+    if(rec.hasil&&HASIL_META[rec.hasil]){children.push(T('Status Monitoring: '+(HASIL_META[rec.hasil].label||rec.hasil),{bold:true,center:true,spacing:{before:200}}));}
+    if(fields.sp_link_lampiran)children.push(new Paragraph({text:'Link Lampiran: '+fields.sp_link_lampiran}));
+    if(fields.sp_foto_kegiatan)children.push(new Paragraph({text:'Dokumentasi Foto: Terlampir di sistem (Gambar Foto Kegiatan)'}));
   }
 
   const doc = new Document({
@@ -584,5 +532,5 @@ function cetakMonExcel(id){const m=DB.monitoring.find(x=>x.id===id);if(!m)return
 function cetakUnitForm(jenis,unitId){generateFormPdf(jenis,false,{unitId:unitId||'',jenis:jenis,formType:(jenis==='KDMP'?'KDMP':'SPPG'),form:jenis==='KDMP'?{sections:[],compliance:[]}:{version:SPPG_FORM_VERSION,fields:{}}});}
 
 /* Public action bridge for existing HTML controls. */
-Object.assign(globalThis, { PRINT_CSS });
-Object.assign(globalThis, { escP, printHTML, printHeader, buildKdmpPrintHtml, buildSppgPrintHtml, pdfSafe, formTitle, recFormData, fieldVal, hasFormData, gridPdf, generateFormPdf, gridXls, generateFormXlsx, cetakRekam, cetakRekamDocx, generateFormDocx, unduhFormExcelRekam, cetakMon, cetakMonDocx, cetakMonExcel, cetakUnitForm });
+
+Object.assign(globalThis, { pdfSafe, formTitle, recFormData, fieldVal, hasFormData, gridPdf, generateFormPdf, gridXls, generateFormXlsx, cetakRekam, cetakRekamDocx, generateFormDocx, unduhFormExcelRekam, cetakMon, cetakMonDocx, cetakMonExcel, cetakUnitForm });

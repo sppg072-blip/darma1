@@ -1,9 +1,0 @@
-/* ============ CETAK / PRINT (hanya aktif saat body.printing) ============ */
-#printRoot{display:none;position:fixed;left:-99999px;top:0;width:210mm;background:#fff;}
-@media print{
-  html,body{overflow:visible!important;height:auto!important;margin:0!important;background:#fff!important;}
-  body.printing #mapRoot,body.printing #cntBadge,body.printing #mapCtrl,body.printing #legendBox,
-  body.printing #loginOverlay,body.printing #hdr,body.printing #sidebar,
-  body.printing .toastwrap,body.printing .moverlay{display:none!important;}
-  body.printing #printRoot{display:block!important;position:static!important;left:0!important;top:0!important;}
-}
