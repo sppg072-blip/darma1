@@ -36,3 +36,27 @@
 #econLensPanel .el-nodata{font-size:10px;color:var(--text3);font-style:italic;padding:6px 2px;}
 #econLensPanel .el-empty{opacity:.72;}
 #econLensPanel .el-s{font-size:9px;color:var(--text3);line-height:1.45;}
+
+/* ============================================================
+   PEMERIKSAAN KONSISTENSI WAWANCARA (tab Laporan)
+============================================================ */
+#consistencyPanel .cs-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+#consistencyPanel .cs-chip{font-size:10.5px;font-weight:800;border-radius:999px;padding:5px 11px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);}
+#consistencyPanel .cs-chip.warn{background:#fffbeb;border-color:#fde68a;color:#92400e;}
+#consistencyPanel .cs-chip.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534;}
+#consistencyPanel .cs-chip.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af;}
+#consistencyPanel .cs-chip.mini{font-size:9.5px;padding:3px 9px;}
+#consistencyPanel .cs-rules{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px;}
+#consistencyPanel .cs-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:11px;max-height:430px;}
+#consistencyPanel .cs-table{width:100%;min-width:640px;border-collapse:collapse;font-size:10.8px;}
+#consistencyPanel .cs-table thead th{position:sticky;top:0;background:linear-gradient(135deg,#1D4ED8,#2563EB);color:#fff;font-size:9.5px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;}
+#consistencyPanel .cs-table tbody td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+#consistencyPanel .cs-table tbody tr{cursor:pointer;transition:background .1s;}
+#consistencyPanel .cs-table tbody tr:hover{background:rgba(96,165,250,.14);}
+#consistencyPanel .cs-table td.cs-unit{font-weight:800;min-width:140px;white-space:nowrap;}
+#consistencyPanel .cs-table td.cs-unit small{display:block;font-weight:600;color:var(--text3);font-size:9px;}
+#consistencyPanel .cs-table td.cs-sev{white-space:nowrap;font-weight:800;}
+#consistencyPanel .cs-table tr.cs-verify td.cs-sev{color:#b45309;}
+#consistencyPanel .cs-table tr.cs-info td.cs-sev{color:#1d4ed8;}
+#consistencyPanel .cs-table td.cs-label{font-weight:700;min-width:140px;}
+#consistencyPanel .cs-table td.cs-detail{color:var(--text2);min-width:200px;}

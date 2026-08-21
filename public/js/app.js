@@ -21,4 +21,5 @@ import './core/confirm.js';
 import './features/exports/data.js';
 import './features/exports/forms.js';
 import './features/reports/economy.js';
+import './features/reports/consistency.js';
 import './app/init.js';

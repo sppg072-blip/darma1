@@ -13,7 +13,7 @@ function applyRBAC() {
   const rptTab=document.getElementById('btnReportTab');if(rptTab)rptTab.style.display=isAdmin?'flex':'none';
   const rptDash=document.getElementById('btnDashReport');if(rptDash)rptDash.style.display=isAdmin?'inline-flex':'none';
 }
-function renderAll(){renderMap();renderDash();renderUnitList();renderHist();refreshUnitSelect();applyRBAC();if(typeof renderEconLens==='function')renderEconLens();}
+function renderAll(){renderMap();renderDash();renderUnitList();renderHist();refreshUnitSelect();applyRBAC();if(typeof renderEconLens==='function')renderEconLens();if(typeof renderConsistencyPanel==='function')renderConsistencyPanel();}
 function monitoringKind(record) {
   if (record && record.formType) return record.formType;
   if (record && record.jenis) return record.jenis;
