@@ -412,6 +412,37 @@ function importJSON(ev){
 }
 
 
+/* MENU HAPUS DATA MASSAL (khusus admin) — unit + monitoring terkait per jenis */
+function openPurgeMenu(){
+  if (!CU || CU.role !== 'admin'){ toast('Hanya Admin yang dapat menghapus data massal', 'e'); return; }
+  const st = document.getElementById('purgeStats');
+  if (st){
+    const idsOf = j => new Set(DB.units.filter(u => u.jenis === j).map(u => u.id));
+    const monOf = ids => DB.monitoring.filter(m => ids.has(m.unitId)).length;
+    const sIds = idsOf('SPPG'), kIds = idsOf('KDMP');
+    st.innerHTML = `Saat ini: <b>${sIds.size} unit SPPG</b> (+${monOf(sIds)} monitoring) · <b>${kIds.size} unit KDMP</b> (+${monOf(kIds)} monitoring) · total ${DB.units.length} unit / ${DB.monitoring.length} rekaman.`;
+  }
+  document.getElementById('mPurgeMenu').classList.remove('hidden');
+}
+function purgeData(scope){
+  if (!CU || CU.role !== 'admin'){ toast('Hanya Admin yang dapat menghapus data', 'e'); return; }
+  let delUnits, label;
+  if (scope === 'sppg'){ delUnits = DB.units.filter(u => u.jenis === 'SPPG'); label = 'SPPG'; }
+  else if (scope === 'kdmp'){ delUnits = DB.units.filter(u => u.jenis === 'KDMP'); label = 'KDMP'; }
+  else { delUnits = DB.units.slice(); label = 'SEMUA'; }
+  const ids = new Set(delUnits.map(u => u.id));
+  const delMon = DB.monitoring.filter(m => ids.has(m.unitId));
+  if (!delUnits.length){ toast('Tidak ada unit ' + (scope === 'all' ? '' : label + ' ') + 'untuk dihapus'); closeM('mPurgeMenu'); return; }
+  if (!window.confirm(`Hapus ${delUnits.length} unit ${label} dan ${delMon.length} rekaman monitoring terkait?\n\nTindakan ini PERMANEN. Pastikan sudah backup.`)) return;
+  if (!window.confirm(`Yakin benar-benar menghapus?\n\nUnit: ${delUnits.length} · Monitoring: ${delMon.length}\nData yang terhapus tidak dapat dikembalikan.`)) return;
+  DB.units = DB.units.filter(u => !ids.has(u.id));
+  DB.monitoring = DB.monitoring.filter(m => !ids.has(m.unitId));
+  persistReplace();
+  renderAll();
+  closeM('mPurgeMenu');
+  toast(`🗑️ Terhapus: ${delUnits.length} unit ${label} · ${delMon.length} rekaman monitoring`);
+}
+
 /* MENU BACKUP — pilih cakupan: semua data (untuk Restore) atau unit saja per jenis (untuk Impor Unit/gabung) */
 function openBackupMenu(){ document.getElementById('mBackupMenu').classList.remove('hidden'); }
 function exportJSONScope(scope){
@@ -429,4 +460,4 @@ function exportJSONScope(scope){
 
 /* Public action bridge for existing HTML controls. */
 Object.assign(globalThis, { STATUS_PLAIN, HASIL_PLAIN, ASPEK_PLAIN, SLHS_PLAIN, TBL_STYLE, TBL_HEAD, TBL_ALT });
-Object.assign(globalThis, { stripEmoji, getJsPDF, pdfHead, pdfFoot, exportPdfMonitoring, exportPdfUnits, exportPdfUnitDetail, exportPdfDash, exportMonTablePdf, exportXlsxUnit, exportXlsx, exportJSON, importJSON, openBackupMenu, exportJSONScope });
+Object.assign(globalThis, { stripEmoji, getJsPDF, pdfHead, pdfFoot, exportPdfMonitoring, exportPdfUnits, exportPdfUnitDetail, exportPdfDash, exportMonTablePdf, exportXlsxUnit, exportXlsx, exportJSON, importJSON, openBackupMenu, exportJSONScope, openPurgeMenu, purgeData });

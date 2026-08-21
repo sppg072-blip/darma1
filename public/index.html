@@ -599,6 +599,20 @@
   </div>
 </div>
 
+<!-- ================= MODAL: MENU HAPUS DATA (ADMIN) ================= -->
+<div id="mPurgeMenu" class="moverlay hidden">
+  <div class="mbox" style="max-width:470px">
+    <div class="mhead"><h3><i class="fas fa-trash-alt" style="color:var(--bad)"></i> Hapus Data Massal</h3><button class="mclose" onclick="closeM('mPurgeMenu')">×</button></div>
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:9px">
+      <div class="fhint" id="purgeStats">—</div>
+      <button class="btn bd" onclick="purgeData('sppg')"><i class="fas fa-utensils"></i> Hapus Data SPPG <small style="font-weight:600">(unit SPPG + seluruh monitoring terkait, termasuk form Naker)</small></button>
+      <button class="btn bd" onclick="purgeData('kdmp')"><i class="fas fa-store"></i> Hapus Data KDMP <small style="font-weight:600">(unit KDMP + seluruh monitoring terkait)</small></button>
+      <button class="btn bd" onclick="purgeData('all')" style="background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff"><i class="fas fa-exclamation-triangle"></i> Hapus SEMUA Unit &amp; Monitoring</button>
+      <div class="fhint">⚠️ Permanen dan tidak bisa dibatalkan. <b>Backup dulu</b> (tombol Backup → Semua Data). Penghapusan memerlukan konfirmasi dua kali. Khusus Admin.</div>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL: DETAIL UNIT ================= -->
 <div id="mDetail" class="moverlay hidden">
   <div class="mbox wide">

@@ -36,6 +36,7 @@ function iuClassify(row){
 }
 
 function openUnitsImportWizard(){
+  if (!CU || CU.role !== 'admin'){ toast('Hanya Admin yang dapat mengimpor unit', 'e'); return; }
   document.getElementById('mImportUnits').classList.remove('hidden');
   renderUnitsImport();
 }
@@ -145,6 +146,7 @@ function iuSelectAll(on){
 }
 
 function commitUnitsImport(){
+  if (!CU || CU.role !== 'admin'){ toast('Hanya Admin yang dapat mengimpor unit', 'e'); return; }
   const selected = unitsImportState.rows.filter(r => r.checked && r.decision !== 'skip');
   const merging = selected.filter(r => r.decision === 'merge' && r.match && r.match.unit);
   const invalidMerge = selected.filter(r => r.decision === 'merge' && !(r.match && r.match.unit));
