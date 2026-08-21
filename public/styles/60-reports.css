@@ -18,13 +18,21 @@
    PLAN 2 — LENSE EKONOMI DAERAH (tab Laporan)
 ============================================================ */
 #econLensPanel .el-card{border:1px solid var(--border);border-radius:13px;background:var(--bg2);padding:10px 12px;margin-bottom:10px;}
-#econLensPanel .el-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
-#econLensPanel .el-kab{font-size:12px;font-weight:800;color:var(--text);}
-#econLensPanel .el-meta{font-size:10px;color:var(--text3);font-weight:700;}
-#econLensPanel .el-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;}
-#econLensPanel .el-cell{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:8px 9px;display:flex;flex-direction:column;gap:4px;}
-#econLensPanel .el-t{font-size:9.5px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
-#econLensPanel .el-v{font-size:13.5px;font-weight:900;color:var(--text);}
-#econLensPanel .el-bar{height:5px;border-radius:3px;background:rgba(148,163,184,.25);overflow:hidden;}
-#econLensPanel .el-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+#econLensPanel .el-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:7px;padding-bottom:7px;border-bottom:1px dashed var(--border);}
+#econLensPanel .el-kab{font-size:12.5px;font-weight:900;color:var(--text);}
+#econLensPanel .el-meta{font-size:9.5px;color:var(--text3);font-weight:700;}
+#econLensPanel .el-rows{display:flex;flex-direction:column;gap:9px;}
+#econLensPanel .el-row{display:flex;gap:9px;align-items:stretch;}
+#econLensPanel .el-l{flex:0 0 44%;min-width:120px;}
+#econLensPanel .el-l b{display:block;font-size:11px;font-weight:800;color:var(--text);line-height:1.3;}
+#econLensPanel .el-l small{display:block;font-size:9px;color:var(--text3);line-height:1.45;margin-top:2px;}
+#econLensPanel .el-r{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;justify-content:center;}
+#econLensPanel .el-v{font-size:13px;font-weight:900;color:var(--text);line-height:1.25;}
+#econLensPanel .el-v small{display:block;font-size:8.7px;font-weight:600;color:var(--text3);line-height:1.5;margin-top:1px;word-break:break-word;}
+#econLensPanel .el-bar{position:relative;height:14px;width:100%;border-radius:7px;background:rgba(148,163,184,.22);overflow:hidden;margin-top:2px;}
+#econLensPanel .el-fill{height:100%;border-radius:7px;transition:width .4s ease;}
+#econLensPanel .el-score{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:8.5px;font-weight:900;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 4px #fff;}
+#econLensPanel .el-legend{font-size:9.3px;color:var(--text2);background:var(--bg3);border:1px dashed var(--border);border-radius:9px;padding:7px 9px;margin-bottom:10px;line-height:1.5;}
+#econLensPanel .el-nodata{font-size:10px;color:var(--text3);font-style:italic;padding:6px 2px;}
+#econLensPanel .el-empty{opacity:.72;}
 #econLensPanel .el-s{font-size:9px;color:var(--text3);line-height:1.45;}
