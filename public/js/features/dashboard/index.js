@@ -1,7 +1,7 @@
 /* ============================================================
    RENDER: DASHBOARD
 ============================================================ */
-import { formatRupiahAmount } from '../domain/forms/currency.js';
+import { formatRupiahAmount } from '../../domain/forms/currency.js';
 
 function applyRBAC() {
   const isAdmin = CU && CU.role === 'admin';
