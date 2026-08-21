@@ -153,7 +153,7 @@ function buildPopup(u){
     </div>
     <div class="pop-bd">
       <div class="pop-row"><i class="fas fa-map-marker-alt"></i><span>${esc(u.alamat)},<br>Desa ${esc(u.desa)}, Kec. ${esc(u.kec)},<br><b>${esc(u.kab)}</b></span></div>
-      ${u.pic?`<div class="pop-row"><i class="fas fa-user-tie"></i><span><b>${esc(u.pic)}</b>${u.telp?` · 📞 ${esc(u.telp)}`:''}</span></div>`:''}
+      ${u.pic?`<div class="pop-row"><i class="fas fa-user-tie"></i><span><b>Kepala ${has?'SPPG':'KDMP'}:</b> ${esc(u.pic)}${u.telp?` · 📞 ${esc(u.telp)}`:''}</span></div>`:''}
       <div class="pop-kv">${kv}</div>
       ${hasilHtml}
     </div>
