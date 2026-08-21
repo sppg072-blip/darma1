@@ -153,7 +153,7 @@ function buildPopup(u){
     </div>
     <div class="pop-bd">
       <div class="pop-row"><i class="fas fa-map-marker-alt"></i><span>${esc(u.alamat)},<br>Desa ${esc(u.desa)}, Kec. ${esc(u.kec)},<br><b>${esc(u.kab)}</b></span></div>
-      ${u.pic?`<div class="pop-row"><i class="fas fa-user-tie"></i><span><b>Kepala ${has?'SPPG':'KDMP'}:</b> ${esc(u.pic)}${u.telp?` · 📞 ${esc(u.telp)}`:''}</span></div>`:''}
+      ${u.pic?`<div class="pop-row"><i class="fas fa-user-tie"></i><span><b>Kepala ${has?'SPPG':'KDMP'}:</b> ${esc(u.pic)}${u.telp?` · <a href="https://wa.me/${waDigits(u.telp)}" target="_blank" rel="noopener noreferrer" class="pop-wa" title="Buka chat WhatsApp"><i class="fa-brands fa-whatsapp"></i> ${esc(u.telp)}</a>`:''}</span></div>`:''}
       <div class="pop-kv">${kv}</div>
       ${hasilHtml}
     </div>
@@ -166,6 +166,8 @@ function buildPopup(u){
   </div>`;
 }
 function flyToUnit(id){const u=unitById(id);if(!u)return;map.flyTo([u.lat,u.lng],18,{duration:1.2});selectUnit(id);}
+/* PLAN 3: normalisasi nomor HP ke format internasional wa.me (08... -> 628...) */
+function waDigits(t){const d=String(t||'').replace(/[^0-9]/g,'');if(!d)return '';if(d.startsWith('0'))return '62'+d.slice(1);if(d.startsWith('62'))return d;if(d.startsWith('8'))return '62'+d;return d;}
 function navigateUnit(){const u=unitById(dtCurrent);if(!u)return;navToUnit(u.id);}
 function navToUnit(id){const u=unitById(id);if(!u){toast('Unit tidak ditemukan','e');return;}const dest=encodeURIComponent(u.lat+','+u.lng);window.open('https://www.google.com/maps/dir/?api=1&destination='+dest,'_blank','noopener');toast('🗺️ Membuka rute Google Maps ke '+u.nama);}
 

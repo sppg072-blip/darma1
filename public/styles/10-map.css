@@ -270,3 +270,7 @@
 .pop-btn.d2{background:var(--brand);color:#fff;}
 .pop-btn.d3{background:#f1f5f9;color:#334155;}
 
+
+/* PLAN 3: tautan WhatsApp di popup */
+.pop-wa{color:#16a34a;font-weight:800;text-decoration:none;border-bottom:1px dashed #16a34a;white-space:nowrap;}
+.pop-wa:hover{color:#15803d;border-bottom-style:solid;}
