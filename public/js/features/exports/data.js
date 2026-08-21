@@ -279,7 +279,7 @@ function exportPdfDash(){
       columnStyles:{0:{cellWidth:7},1:{cellWidth:28},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:19},5:{cellWidth:19},6:{cellWidth:31},7:{cellWidth:55}}});
     y=doc.lastAutoTable.finalY+3.5;
     doc.setFontSize(6.8);doc.setFont('helvetica','italic');doc.setTextColor(100,116,139);
-    doc.text('Catatan: tabel menampilkan kunjungan TERAKHIR setiap unit SPPG. Total seluruh kunjungan dalam lingkup: '+allSppgRecs.length+' rekaman dari '+seenSppgUnits.size+' unit SPPG. Belanja Bahan Baku = pengeluaran per kelompok bahan baku (sp411: pokok/lauk/sayur/buah/minuman/lainnya, dalam+luar kota); bila kosong memakai total per kelompok supplier (sp410).',12,y,{maxWidth:186});
+    doc.text('Catatan: tabel menampilkan kunjungan TERAKHIR setiap unit SPPG. Total seluruh kunjungan dalam lingkup: '+allSppgRecs.length+' rekaman dari '+seenSppgUnits.size+' unit SPPG. Belanja Bahan Baku = jumlah sendiri pengeluaran per kelompok bahan baku (sp411: pokok/lauk/sayur/buah/minuman/lainnya, dalam+luar kota); unit yang belum mengisi sp411 tampil sebagai "-".',12,y,{maxWidth:186});
     y+=6;
   }else{doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(120);doc.text('Belum ada rekaman monitoring SPPG dalam lingkup.',12,y+3);y+=8;}
 

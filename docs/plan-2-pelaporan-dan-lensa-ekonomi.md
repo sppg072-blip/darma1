@@ -36,7 +36,7 @@ Alokasi kolom (mm): `No 6 · Nama SPPG 28 · Tgl 15 · Penerima 14 · Belanja 19
 | Nama SPPG (+ Ka. SPPG baris ke-2) | `unit.nama` + responden `sp107`/`sp108` (fallback `unit.pic`) | teks 2 baris |
 | Tanggal Monitoring | `m.tgl` | `fmtD` |
 | Penerima Manfaat | `sp201` total | 2.500 |
-| Belanja Bahan Baku (1 minggu) | `sp410` total | Rp82.809.900,- |
+| Belanja Bahan Baku (1 minggu) | **`sp411` murni — dijumlahkan sendiri** (pokok/lauk/sayur/buah/minum/lain × dalam+luar kota; tanpa fallback sp410 — revisi user) | Rp82.809.900,- |
 | Biaya Operasional 1 Minggu | `sp413` total | Rp82.809.900,- |
 | Kendala/Hambatan | `sp414` multi-pilih, gabung koma | teks wrap |
 | Catatan Lain | `m.temuan` | teks wrap |
