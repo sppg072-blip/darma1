@@ -40,6 +40,15 @@ const global = window;
   function avg(a) { const x = a.map(n).filter(v => Number.isFinite(v)); return x.length ? sum(x) / x.length : 0; }
   function pct(a, b) { return b ? (a / b) * 100 : 0; }
   function fmt(v, dec) { return Number(v || 0).toLocaleString('id-ID', { maximumFractionDigits: dec == null ? 0 : dec }); }
+  /* AUDIT: format uang konsisten — rupiah penuh & ringkas miliar/juta */
+  function fmtRp(v) { const x = Number(v); return Number.isFinite(x) ? 'Rp' + Math.round(x).toLocaleString('id-ID') + ',-' : '—'; }
+  function fmtRpShort(v) {
+    const x = Number(v);
+    if (!Number.isFinite(x)) return '—';
+    if (Math.abs(x) >= 1e9) return 'Rp' + (x / 1e9).toLocaleString('id-ID', { maximumFractionDigits: 2 }) + ' miliar';
+    if (Math.abs(x) >= 1e6) return 'Rp' + (x / 1e6).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' juta';
+    return fmtRp(x);
+  }
   function fmtPct(v) { return fmt(v, 1) + '%'; }
   function safe(v) { return String(v == null ? '' : v); }
   function html(v) { return safe(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -90,7 +99,11 @@ const global = window;
     const wantedType = cfg.type === 'kdmp' ? 'KDMP' : 'SPPG';
     const units = (db.units || []).filter(u => u.jenis === wantedType && (!cfg.region || u.kab === cfg.region));
     const ids = new Set(units.map(u => u.id));
-    const monitoring = (db.monitoring || []).filter(m => ids.has(m.unitId) && dateInRange(m.tgl, cfg.start, cfg.end));
+    /* FIX AUDIT: kunjungan = monitoring utama sesuai jenis laporan (SPPG/KDMP);
+       form NAKER dipisah sebagai kelengkapan kunjungan, tidak dihitung sebagai kunjungan */
+    const allRecs = (db.monitoring || []).filter(m => ids.has(m.unitId) && dateInRange(m.tgl, cfg.start, cfg.end));
+    const monitoring = allRecs.filter(m => monFormType(m) === wantedType);
+    const nakerRecs = cfg.type === 'sppg' ? allRecs.filter(m => monFormType(m) === 'NAKER') : [];
     const visitsByUnit = {};
     monitoring.forEach(m => { visitsByUnit[m.unitId] = (visitsByUnit[m.unitId] || 0) + 1; });
     const visited = new Set(Object.keys(visitsByUnit));
@@ -130,7 +143,7 @@ const global = window;
     monitoring.forEach(m=>{const dt=new Date((m.tgl||'')+'T00:00:00');if(isNaN(dt))return;const day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);const key=dt.toISOString().slice(0,10);weekly[key]=(weekly[key]||0)+1;});
     const visitTrend=Object.entries(weekly).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12).map(([k,v])=>({label:new Date(k+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short'}),value:v}));
     return {
-      db, cfg, units, monitoring, visitsByUnit, visited, latest, status, byRegion, freq, priority,topDistricts,visitTrend,
+      db, cfg, units, monitoring, nakerRecs, visitsByUnit, visited, latest, status, byRegion, freq, priority,topDistricts,visitTrend,
       total: units.length, visits: monitoring.length, monitored: visited.size,
       unmonitored: units.length - visited.size, coverage: pct(visited.size, units.length),
       geoValid:units.filter(u=>Number.isFinite(n(u.lat))&&Number.isFinite(n(u.lng))&&n(u.lat)!==0&&n(u.lng)!==0).length,
@@ -162,7 +175,7 @@ const global = window;
   function analyzeSPPG(cfg) {
     const a = baseAnalysis(cfg);
     const sppgForms = a.monitoring.filter(m => monFormType(m) === 'SPPG' && m.form && formHasData(m));
-    const nakerForms = a.monitoring.filter(m => monFormType(m) === 'NAKER' && m.form && formHasData(m));
+    const nakerForms = a.nakerRecs.filter(m => monFormType(m) === 'NAKER' && m.form && formHasData(m));
     const latestSPPG = latestBy(sppgForms, m => m.unitId);
     const snapshots = [...latestSPPG.values()];
     const benefKeys = ['siswa', 'ibuhamil', 'balita', 'guru', 'posyandu'];
@@ -175,7 +188,7 @@ const global = window;
     const workers = [], cooks = [], days = [], supplierCounts = [];
     const finance = {
       supplierSpend: { KDKMP: 0, 'BUMDes/Koperasi': 0, 'Agen/Pasar': 0, Distributor: 0, Produsen: 0, UMKM: 0 },
-      originSpend: { 'Dalam kota': 0, 'Luar kota': 0 }, operational: {}, obstacles: {}, filled: 0
+      originSpend: { 'Dalam kota': 0, 'Luar kota': 0 }, operational: {}, obstacles: {}, filled: 0, topUpJuta: 0
     };
     const dist = { '< 15 menit': 0, '< 30 menit': 0, '> 30 menit': 0, 'Tidak diisi': 0 },distMinutes=[];
     const bpjs = { '0-20%': 0, '21-50%': 0, '51-80%': 0, '81-100%': 0, 'Tidak diisi': 0 };
@@ -190,6 +203,7 @@ const global = window;
       if (f.sp206 !== '' && f.sp206 != null) cooks.push(n(f.sp206));
       if (f.sp203 !== '' && f.sp203 != null) days.push(n(f.sp203));
       if (f.sp409 !== '' && f.sp409 != null) supplierCounts.push(n(f.sp409));
+      if (f.sp403 !== '' && f.sp403 != null) finance.topUpJuta += n(f.sp403); /* AUDIT: arus dana BGN */
       const ss=f.sp410||{};
       finance.supplierSpend.KDKMP+=n(ss.kdkmp);finance.supplierSpend['BUMDes/Koperasi']+=n(ss.bumdes);finance.supplierSpend['Agen/Pasar']+=n(ss.agen);finance.supplierSpend.Distributor+=n(ss.distributor);finance.supplierSpend.Produsen+=n(ss.produsen);finance.supplierSpend.UMKM+=n(ss.umkm);
       const os=f.sp411||{};Object.entries(os).filter(([k])=>k!=='total').forEach(([,v])=>{if(v&&typeof v==='object'){finance.originSpend['Dalam kota']+=n(v.dalam);finance.originSpend['Luar kota']+=n(v.luar);}});
@@ -207,11 +221,15 @@ const global = window;
       extraTexts.push(f.sp312); arrayVals(f.sp414).forEach(x => extraTexts.push(x));
     });
     const nf = nakerForms.map(m => fieldsOf(m));
+    /* AUDIT: kenaikan upah % (nk203 vs nk207) & asal responden sebelum MBG (nk204) */
+    const uplifts = nf.map(f => { const nw = Number(f.nk207), ov = Number(f.nk203); return (Number.isFinite(nw) && Number.isFinite(ov) && ov > 0 && f.nk207 !== '' && f.nk203 !== '') ? ((nw - ov) / ov) * 100 : null; }).filter(v => v != null);
     const naker = {
       responses: nf.length,
       positions: countVal(nf, f => f.nk102), education: countVal(nf, f => f.nk103),
       priorWork: countVal(nf, f => f.nk201), sop: countVal(nf, f => f.nk301),
       impact: countVal(nf, f => f.nk308), overtime: countVal(nf, f => f.nk208),
+      origins: countVal(nf, f => f.nk204),
+      wageUpliftPct: uplifts.length ? uplifts.reduce((a, b) => a + b, 0) / uplifts.length : null,
       avgDays: avg(nf.map(f => f.nk205).filter(v => v !== '')),
       avgHours: avg(nf.map(f => f.nk206).filter(v => v !== '')),
       avgOldWage: avg(nf.map(f => f.nk203).filter(v => v !== '')),
@@ -219,7 +237,7 @@ const global = window;
       constraints: {}
     };
     nf.forEach(f => arrayVals(f.nk304).forEach(x => naker.constraints[x] = (naker.constraints[x] || 0) + 1));
-    const findings = findingSummary(a.monitoring, extraTexts);
+    const findings = findingSummary([...a.monitoring, ...a.nakerRecs], extraTexts);
     const capTotal = sum(a.units.map(u => u.kapasitas));
     const benefTotal = sum(Object.values(benef)), schoolTotal = sum(Object.values(schools));
     const completeness = {
@@ -509,6 +527,37 @@ const global = window;
     bullets(s, d.recommendations.slice(0, 6), 9.16, 3.24, 3.35, 3.05, C.slate);
   }
 
+  function dashboardMirrorSlide(pptx, d, cfg, page) {
+    const s = pptx.addSlide(); addHeader(s, pptx, 'Gambaran Umum Wilayah — Cerminan Dashboard', 'Seluruh unit SPPG & KDMP: populasi, kunjungan, status, dan cakupan', page);
+    /* AUDIT: slide cerminan dashboard — mengikuti wilayah & periode laporan */
+    const units = (d.db.units || []).filter(u => !cfg.region || u.kab === cfg.region);
+    const ids = new Set(units.map(u => u.id));
+    const recs = (d.db.monitoring || []).filter(m => ids.has(m.unitId) && dateInRange(m.tgl, cfg.start, cfg.end));
+    const unitOf = m => (d.db.units || []).find(u => u.id === m.unitId) || {};
+    const kind = m => String(m.formType || m.jenis || unitOf(m).jenis || '').toUpperCase();
+    const prim = recs.filter(m => kind(m) === 'SPPG' || kind(m) === 'KDMP');
+    const nakerN = recs.filter(m => kind(m) === 'NAKER').length;
+    const aktif = units.filter(u => u.status === 'aktif'), prep = units.filter(u => u.status === 'persiapan'), plan = units.filter(u => u.status === 'rencana');
+    const subMix = a => a.filter(u => u.jenis === 'SPPG').length + ' SPPG · ' + a.filter(u => u.jenis === 'KDMP').length + ' KDMP';
+    kpi(s, pptx, .6, 1.15, 3.95, 1.05, fmt(units.filter(u => u.jenis === 'SPPG').length), 'SPPG / Dapur MBG', C.blue, 'Unit terdaftar');
+    kpi(s, pptx, 4.79, 1.15, 3.95, 1.05, fmt(units.filter(u => u.jenis === 'KDMP').length), 'KDMP Koperasi', C.red, 'Unit terdaftar');
+    kpi(s, pptx, 8.98, 1.15, 3.95, 1.05, fmt(prim.length), 'Kunjungan Monitoring Utama', C.green, `SPPG ${prim.filter(m => kind(m) === 'SPPG').length} · KDMP ${prim.filter(m => kind(m) === 'KDMP').length} · Naker ${nakerN} form (kelengkapan)`);
+    kpi(s, pptx, .6, 2.32, 3.95, 1.05, fmt(aktif.length), 'Aktif / Operasional', C.green, subMix(aktif));
+    kpi(s, pptx, 4.79, 2.32, 3.95, 1.05, fmt(prep.length), 'Dalam Persiapan', C.amber, subMix(prep));
+    kpi(s, pptx, 8.98, 2.32, 3.95, 1.05, fmt(plan.length), 'Rencana / Usulan', C.slate, subMix(plan));
+    panel(s, pptx, .6, 3.55, 6.55, 3.1, 'Progres Cakupan per Jenis (sudah vs belum)');
+    const sppgU = units.filter(u => u.jenis === 'SPPG'), kdmpU = units.filter(u => u.jenis === 'KDMP');
+    const monS = sppgU.filter(u => prim.some(m => m.unitId === u.id && kind(m) === 'SPPG')).length;
+    const monK = kdmpU.filter(u => prim.some(m => m.unitId === u.id && kind(m) === 'KDMP')).length;
+    const monAll = new Set(prim.map(m => m.unitId)).size;
+    stackedChart(s, pptx, ['SPPG', 'KDMP', 'Total'], [monS, monK, monAll], [sppgU.length - monS, kdmpU.length - monK, units.length - monAll], .85, 4.0, 5.95, 2.25);
+    panel(s, pptx, 7.4, 3.55, 5.37, 3.1, 'Unit per Kabupaten/Kota', 'F8FAFC');
+    const kabs = REGION_ORDER.filter(r => units.some(u => u.kab === r)).map(r => [r.replace('Kab. ', ''), units.filter(u => u.kab === r).length]);
+    if (kabs.length) barList(s, pptx, kabs, 7.66, 4.0, 4.8, 2.1, C.blue);
+    addText(s, 'Cerminan kartu dashboard DARMA-1 · kunjungan = monitoring utama per jenis unit (form Naker = kelengkapan kunjungan) · mengikuti wilayah & periode laporan.', .62, 6.75, 12.1, .26, { fontSize: 8.2, italic: true, color: C.muted });
+    return s;
+  }
+
   function mapSlide(pptx, d, cfg, geo, page) {
     const s = pptx.addSlide(); addHeader(s, pptx, 'Peta Sebaran & Progres Monitoring', 'Titik, status kunjungan, dan konsentrasi wilayah', page);
     const svg = mapSvg(geo, d);
@@ -601,24 +650,32 @@ const global = window;
   }
 
   function sppgNakerSlide(pptx, d, page) {
-    const s = pptx.addSlide(); addHeader(s, pptx, 'Profil & Kondisi Tenaga Kerja', 'Rekap respons Naker pada periode laporan', page);
-    kpi(s, pptx, .6, 1.25, 2.55, 1.1, fmt(d.naker.responses), 'Respons Naker', C.purple, 'Bukan otomatis orang unik');
-    kpi(s, pptx, 3.32, 1.25, 2.55, 1.1, fmt(d.naker.avgDays, 1), 'Hari kerja/minggu', C.blue, 'Rata-rata respons');
-    kpi(s, pptx, 6.04, 1.25, 2.55, 1.1, fmt(d.naker.avgHours, 1), 'Jam kerja/hari', C.cyan, 'Rata-rata respons');
-    kpi(s, pptx, 8.76, 1.25, 2.55, 1.1, fmt(d.naker.avgNewWage), 'Rata-rata upah', C.green, 'Rp/bulan');
-    panel(s, pptx, .6, 2.72, 5.95, 3.9, 'Komposisi Posisi Responden');
-    const pos=topEntries(d.naker.positions,6);donutChart(s,pptx,pos.map(x=>x[0]),pos.map(x=>x[1]),.9,3.18,5.3,2.82,[C.purple,C.blue,C.green,C.amber,C.cyan,C.red]);
-    panel(s, pptx, 6.8, 2.72, 5.97, 3.9, 'Kendala Pekerjaan Dominan', 'F8FAFC');
-    barList(s, pptx, topEntries(d.naker.constraints, 6), 7.1, 3.3, 5.28, 2.62, C.amber);
-    if (!d.naker.responses) addText(s, 'Belum ada respons Form Naker pada periode ini.', 7.1, 6.05, 5.15, .3, { fontSize: 10, bold: true, color: C.amber });
+    const s = pptx.addSlide(); addHeader(s, pptx, 'Profil & Kondisi Tenaga Kerja', 'Rekap respons Naker — kelengkapan kunjungan monitoring SPPG', page);
+    kpi(s, pptx, .55, 1.25, 2.25, 1.1, fmt(d.naker.responses), 'Respons Naker', C.purple, 'Kelengkapan kunjungan');
+    kpi(s, pptx, 2.97, 1.25, 2.25, 1.1, fmt(d.naker.avgDays, 1), 'Hari kerja/mgg', C.blue, 'Rata-rata respons');
+    kpi(s, pptx, 5.39, 1.25, 2.25, 1.1, fmt(d.naker.avgHours, 1), 'Jam kerja/hari', C.cyan, 'Rata-rata respons');
+    kpi(s, pptx, 7.81, 1.25, 2.25, 1.1, d.naker.responses ? fmtRpShort(d.naker.avgNewWage) : '—', 'Rata-rata upah', C.green, 'Rp/bulan · rata-rata');
+    kpi(s, pptx, 10.23, 1.25, 2.25, 1.1, d.naker.wageUpliftPct == null ? '—' : '+' + fmt(d.naker.wageUpliftPct, 1) + '%', 'Kenaikan upah', C.green, 'Vs pekerjaan sebelumnya');
+    panel(s, pptx, .6, 2.6, 5.95, 2.06, 'Komposisi Posisi Responden');
+    const pos=topEntries(d.naker.positions,6);donutChart(s,pptx,pos.map(x=>x[0]),pos.map(x=>x[1]),.82,2.92,5.3,1.6,[C.purple,C.blue,C.green,C.amber,C.cyan,C.red]);
+    panel(s, pptx, .6, 4.78, 5.95, 1.88, 'Kendala Pekerjaan Dominan', 'F8FAFC');
+    barList(s, pptx, topEntries(d.naker.constraints, 4), .82, 5.14, 5.45, 1.32, C.amber);
+    panel(s, pptx, 6.8, 2.6, 5.97, 2.06, 'Asal Responden Sebelum MBG', 'F8FAFC');
+    const org = topEntries(d.naker.origins, 4);
+    if (org.length) barList(s, pptx, org, 7.02, 2.96, 5.45, 1.5, C.purple); else addText(s, 'Belum ada isian asal responden.', 7.05, 3.3, 5.2, .3, { fontSize: 10, bold: true, color: C.amber, align: 'center' });
+    panel(s, pptx, 6.8, 4.78, 5.97, 1.88, 'Dampak Ekonomi Keluarga');
+    const imp = topEntries(d.naker.impact, 4);
+    if (imp.length) barList(s, pptx, imp, 7.02, 5.14, 5.45, 1.32, C.green); else addText(s, 'Belum ada isian dampak ekonomi.', 7.05, 5.4, 5.2, .3, { fontSize: 10, bold: true, color: C.amber, align: 'center' });
+    if (!d.naker.responses) addText(s, 'Belum ada respons Form Naker pada periode ini.', .82, 2.75, 5.4, .3, { fontSize: 10, bold: true, color: C.amber });
   }
 
   function sppgFinanceSlide(pptx, d, page) {
-    const s = pptx.addSlide(); addHeader(s, pptx, 'Supplier, Belanja Lokal & Kendala Keuangan', 'Rekap nilai isian dalam Rp juta pada monitoring terbaru', page);
-    kpi(s, pptx, .6, 1.24, 2.55, 1.12, fmt(sum(d.supplierCounts)), 'Supplier terlapor', C.blue, `${fmt(d.supplierCounts.length)} SPPG mengisi`);
-    kpi(s, pptx, 3.32, 1.24, 2.55, 1.12, fmt(sum(Object.values(d.finance.supplierSpend)), 1), 'Belanja pemasok', C.green, 'Rp juta — data terisi');
-    kpi(s, pptx, 6.04, 1.24, 2.55, 1.12, fmt(d.finance.originSpend['Dalam kota'], 1), 'Belanja dalam kota', C.cyan, 'Rp juta');
-    kpi(s, pptx, 8.76, 1.24, 2.55, 1.12, fmt(d.finance.filled), 'SPPG berdata keuangan', C.amber, `${fmtPct(pct(d.finance.filled,d.total))} cakupan`);
+    const s = pptx.addSlide(); addHeader(s, pptx, 'Supplier, Belanja Lokal & Kendala Keuangan', 'Monitoring terbaru — nilai tampil ringkas (miliar/juta), presisi dari isian Rp juta', page);
+    kpi(s, pptx, .55, 1.24, 2.25, 1.12, fmt(sum(d.supplierCounts)), 'Supplier terlapor', C.blue, `${fmt(d.supplierCounts.length)} SPPG mengisi`);
+    kpi(s, pptx, 2.97, 1.24, 2.25, 1.12, fmtRpShort(d.finance.topUpJuta * 1e6), 'Top-up BGN', C.purple, 'Arus dana masuk (sp403)');
+    kpi(s, pptx, 5.39, 1.24, 2.25, 1.12, fmtRpShort(sum(Object.values(d.finance.supplierSpend)) * 1e6), 'Belanja pemasok', C.green, 'Total isian supplier');
+    kpi(s, pptx, 7.81, 1.24, 2.25, 1.12, fmtRpShort(d.finance.originSpend['Dalam kota'] * 1e6), 'Belanja dalam kota', C.cyan, 'Serapan ekonomi lokal');
+    kpi(s, pptx, 10.23, 1.24, 2.25, 1.12, fmt(d.finance.filled), 'SPPG berdata', C.amber, `${fmtPct(pct(d.finance.filled,d.total))} cakupan`);
     panel(s, pptx, .6, 2.72, 6.0, 3.92, 'Komposisi Belanja per Kelompok Supplier');
     donutChart(s,pptx,Object.keys(d.finance.supplierSpend),Object.values(d.finance.supplierSpend),.92,3.18,5.35,2.82,[C.green,C.blue,C.amber,C.red,C.purple,C.cyan]);
     panel(s, pptx, 6.84, 2.72, 5.93, 3.92, 'Kendala Dominan', 'F8FAFC');
@@ -691,7 +748,7 @@ const global = window;
     addText(s, `${fmt(d.total)} unit menjadi denominator laporan. Angka agregat hanya mewakili unit yang mengisi masing-masing bagian.`, .95, 5.22, 5.35, .6, { fontSize: 10, bold: true, color: C.slate, valign: 'top' });
     panel(s, pptx, 7.0, 1.25, 5.77, 5.5, 'Batasan & Cara Membaca', 'F8FAFC');
     const notes = d.kind === 'sppg' ? [
-      'Data snapshot memakai monitoring SPPG terakhir per unit.', 'Frekuensi memakai seluruh kunjungan dalam periode.',
+      'Data snapshot memakai monitoring SPPG terakhir per unit.', 'Frekuensi memakai kunjungan monitoring SPPG dalam periode; form Naker terhitung terpisah sebagai kelengkapan.',
       'Data Naker dihitung sebagai respons, bukan otomatis orang unik.', 'Jumlah jenjang adalah jumlah sekolah, bukan siswa per jenjang.',
       'Narasi tren hanya sah jika tersedia lebih dari satu periode.', 'Rekomendasi otomatis perlu persetujuan penyusun.'
     ] : [
@@ -723,6 +780,7 @@ const global = window;
     coverSlide(pptx, d, cfg);
     let p = 2;
     executiveSlide(pptx, d, cfg, p++, editedNarrative);
+    dashboardMirrorSlide(pptx, d, cfg, p++);
     mapSlide(pptx, d, cfg, geo, p++);
     if(cfg.mode==='lengkap')geoAnalyticsSlide(pptx,d,p++);
     coverageSlide(pptx, d, p++);
