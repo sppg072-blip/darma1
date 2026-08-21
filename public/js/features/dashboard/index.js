@@ -1,6 +1,8 @@
 /* ============================================================
    RENDER: DASHBOARD
 ============================================================ */
+import { formatRupiahAmount } from '../domain/forms/currency.js';
+
 function applyRBAC() {
   const isAdmin = CU && CU.role === 'admin';
   const els = ['btnAddUnit', 'btnBackup', 'btnRestore', 'btnImportTOptimal', 'dtDelBtn', 'dtEditBtn', 'btnClearMon'];
@@ -11,7 +13,7 @@ function applyRBAC() {
   const rptTab=document.getElementById('btnReportTab');if(rptTab)rptTab.style.display=isAdmin?'flex':'none';
   const rptDash=document.getElementById('btnDashReport');if(rptDash)rptDash.style.display=isAdmin?'inline-flex':'none';
 }
-function renderAll(){renderMap();renderDash();renderUnitList();renderHist();refreshUnitSelect();applyRBAC();}
+function renderAll(){renderMap();renderDash();renderUnitList();renderHist();refreshUnitSelect();applyRBAC();if(typeof renderEconLens==='function')renderEconLens();}
 function monitoringKind(record) {
   if (record && record.formType) return record.formType;
   if (record && record.jenis) return record.jenis;
@@ -76,30 +78,115 @@ function renderDash(){
       <div class="hv">${x.n}</div>
     </div>`).join('');
 
-  // target sasaran unit belum dimonitor (0 kunjungan)
-  const unmon = list.filter(u=>mainMonitoringForUnit(u.id).length === 0)
-     .sort((a,b)=> (a.jenis==='SPPG'?-1:1) || a.nama.localeCompare(b.nama)).slice(0,6);
-  document.getElementById('attnList').innerHTML=unmon.length?unmon.map(u=>{
-    return `<div class="krow" onclick="openDetail('${u.id}')">
-      <div class="kbadge ${u.jenis.toLowerCase()} belum">${u.jenis==='SPPG'?'S':'K'}</div>
-      <div class="kinfo"><div class="kname">${esc(u.nama)}</div><div class="ksub">${esc(u.desa)}, Kec. ${esc(u.kec)}, ${esc(u.kab)} · <b style="color:var(--brand)">Belum Kunjungan</b></div></div>
-      <div class="kchip belum">⚪ Belum Dimonitor</div>
-    </div>`;
-  }).join(''):'<div class="empty"><i class="fas fa-check-circle"></i><p>Semua unit sudah dimonitor 🎉</p></div>';
-
-  // recent monitoring
-  const rec=[...DB.monitoring].filter(isPrimaryMonitoring).sort((a,b)=>b.tgl.localeCompare(a.tgl)).slice(0,5);
-  document.getElementById('recentMon').innerHTML=rec.length?rec.map(m=>{
-    const u=unitById(m.unitId);if(!u)return '';
-    return `<div class="krow" onclick="openDetail('${u.id}')">
-      <div class="kbadge ${u.jenis.toLowerCase()} baik">${u.jenis==='SPPG'?'S':'K'}</div>
-      <div class="kinfo"><div class="kname">${esc(u.nama)}</div><div class="ksub">${fmtD(m.tgl)} · oleh ${esc(m.petugas)}</div></div>
-      <div class="kchip baik">🟢 Sudah Dimonitor</div>
-    </div>`;
-  }).join(''):'<div class="empty"><i class="fas fa-inbox"></i><p>Belum ada monitoring</p></div>';
+  // PLAN 1: seksi "Target Sasaran Unit Belum Dimonitor" & "Monitoring Terbaru" dihapus (tampilan terlalu ramai).
 }
 function pickKab(k){document.getElementById('fdKab').value=k;onFilterChange();fitAll();}
 
 
+/* ============================================================
+   PLAN 1: KARTU DASHBOARD KLIK-ABLE + TABEL RINGKAS MONITORING
+============================================================ */
+function dashCard(type){
+  if(type==='mon'){openMonTable();return;}
+  if(type==='sppg'||type==='kdmp'){
+    FS.status='';
+    quickJenis(type==='sppg'?'SPPG':'KDMP');
+    goTab('unit');
+    toast('🏷️ Filter jenis '+(type==='sppg'?'SPPG (Dapur MBG)':'KDMP (Koperasi)')+' aktif — '+filteredUnits().length+' unit ditampilkan di Master Unit');
+    return;
+  }
+  const st={aktif:'aktif',persiapan:'persiapan',rencana:'rencana'}[type];
+  if(!st)return;
+  FS.status=st;
+  onFilterChange();
+  goTab('unit');
+  toast('📌 Unit berstatus '+statusUnitLabel(st)+' — '+filteredUnits().length+' unit ditampilkan di Master Unit');
+}
+
+/* ---------- Modal Tabel Ringkas Monitoring ---------- */
+let monTableSegment='primary';
+function openMonTable(){
+  const kabSel=document.getElementById('mtKab');
+  if(kabSel && kabSel.options.length<=1){
+    Object.keys(KABUPATEN).forEach(k=>kabSel.innerHTML+=`<option value="${k}">${k}</option>`);
+  }
+  renderMonTable();
+  document.getElementById('mMonTable').classList.remove('hidden');
+}
+function closeMonTable(){document.getElementById('mMonTable').classList.add('hidden');}
+function setMonTableSegment(seg){
+  monTableSegment=seg==='naker'?'naker':'primary';
+  const a=document.getElementById('mtSegPrimary'),b=document.getElementById('mtSegNaker');
+  if(a)a.classList.toggle('on',monTableSegment==='primary');
+  if(b)b.classList.toggle('on',monTableSegment==='naker');
+  renderMonTable();
+}
+function monTableRecords(){
+  const searchEl=document.getElementById('mtSearch'),kabEl=document.getElementById('mtKab');
+  const q=((searchEl&&searchEl.value)||'').toLowerCase();
+  const kab=(kabEl&&kabEl.value)||'';
+  return DB.monitoring.filter(m=>{
+    const u=unitById(m.unitId);if(!u)return false;
+    if(monTableSegment==='primary'?!isPrimaryMonitoring(m):!isNakerMonitoring(m))return false;
+    if(kab&&u.kab!==kab)return false;
+    if(q){
+      const f=(m.form&&m.form.fields)||{};
+      const hay=(u.nama+' '+(m.petugas||'')+' '+(f.nk101||'')+' '+(m.tgl||'')+' '+(m.temuan||'')).toLowerCase();
+      if(!hay.includes(q))return false;
+    }
+    return true;
+  }).sort((a,b)=>String(b.tgl||'').localeCompare(String(a.tgl||''))||String(b.id||'').localeCompare(String(a.id||'')));
+}
+function mtNum(v){const n=Number(v);return (v===''||v==null||!Number.isFinite(n))?null:n;}
+function mtGridTotal(m,id){const f=(m&&m.form&&m.form.fields)||{};const g=f[id];return mtNum(g&&g.total);}
+function mtTrunc(s,n){s=String(s==null?'':s);return s.length>n?esc(s.slice(0,n-1))+'…':esc(s);}
+function renderMonTable(){
+  const body=document.getElementById('mtBody');if(!body)return;
+  const recs=monTableRecords();
+  const meta=document.getElementById('mtMeta');
+  const totalAll=monTableSegment==='primary'?DB.monitoring.filter(isPrimaryMonitoring).length:DB.monitoring.filter(isNakerMonitoring).length;
+  if(meta)meta.innerHTML=`Menampilkan <b>${recs.length}</b> baris${recs.length!==totalAll?` (disaring dari ${totalAll} total)`:''} · klik baris untuk membuka detail unit`;
+  if(!recs.length){body.innerHTML='<div class="empty"><i class="fas fa-inbox"></i><p>Tidak ada rekaman sesuai filter.</p></div>';body.style.maxHeight='';return;}
+  const rowsHtml=recs.map(m=>{
+    const u=unitById(m.unitId)||{};
+    const f=(m.form&&m.form.fields)||{};
+    if(monTableSegment==='primary'){
+      const skor=(m.form&&m.jenis==='KDMP'&&m.form.avg!=null)?('⭐ '+m.form.avg):'—';
+      const porsi=mtGridTotal(m,'sp201'),sekolah=mtGridTotal(m,'sp202');
+      return `<tr onclick="openDetail('${u.id}')">
+        <td class="mt-c">${fmtD(m.tgl)}</td>
+        <td class="mt-unit"><span class="kbadge ${String(u.jenis||'sppg').toLowerCase()} baik">${u.jenis==='KDMP'?'K':'S'}</span> ${esc(u.nama)}</td>
+        <td class="mt-c">${esc(u.kab||'')}</td>
+        <td>${esc(m.petugas||'—')}</td>
+        <td class="mt-num">${porsi!=null?fmtN(porsi):'—'}</td>
+        <td class="mt-num">${sekolah!=null?fmtN(sekolah):'—'}</td>
+        <td class="mt-c">${skor}</td>
+        <td class="mt-note">${mtTrunc(m.temuan||'—',90)}</td>
+      </tr>`;
+    }
+    const upah=mtNum(f.nk207),hari=mtNum(f.nk205);
+    return `<tr onclick="openDetail('${u.id}')">
+      <td class="mt-c">${fmtD(m.tgl)}</td>
+      <td class="mt-unit">${esc(u.nama)}</td>
+      <td>${esc(f.nk101||'—')}</td>
+      <td>${esc(f.nk102||'—')}</td>
+      <td class="mt-num">${upah!=null?formatRupiahAmount(upah):'—'}</td>
+      <td class="mt-num">${hari!=null?fmtN(hari):'—'}</td>
+      <td class="mt-note">${mtTrunc(f.nk308||'—',70)}</td>
+    </tr>`;
+  }).join('');
+  const headHtml=monTableSegment==='primary'
+    ?'<tr><th>Tanggal</th><th>Unit</th><th>Kab/Kota</th><th>Petugas</th><th>Porsi/hr</th><th>Sekolah</th><th>Skor</th><th>Temuan</th></tr>'
+    :'<tr><th>Tanggal</th><th>Unit SPPG</th><th>Responden</th><th>Jabatan</th><th>Upah/bulan</th><th>Hari/mgg</th><th>Dampak Ekonomi</th></tr>';
+  body.innerHTML=`<table class="mt-table"><thead>${headHtml}</thead><tbody>${rowsHtml}</tbody></table>`;
+  const rowsSel=(document.getElementById('mtRows')||{}).value||'25';
+  if(rowsSel==='all'){body.style.maxHeight='75vh';}
+  else{
+    const px=Math.min(Math.round(Number(rowsSel))*31+34,Math.round(window.innerHeight*0.75));
+    body.style.maxHeight=px+'px';
+  }
+}
+
 /* Public action bridge for existing HTML controls. */
-Object.assign(globalThis, { applyRBAC, renderAll, renderDash, pickKab });
+Object.assign(globalThis, { applyRBAC, renderAll, renderDash, pickKab,
+  dashCard, openMonTable, closeMonTable, setMonTableSegment, renderMonTable, monTableRecords, monTableSegment:()=>monTableSegment });

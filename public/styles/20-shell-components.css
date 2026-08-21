@@ -281,3 +281,37 @@ textarea.fc{resize:vertical;min-height:56px;}
 .toast.e{border-left-color:var(--bad);}
 @keyframes tIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
 
+
+/* ============================================================
+   PLAN 1: KARTU DASHBOARD KLIK-ABLE + MODAL TABEL RINGKAS
+============================================================ */
+.sbox.clickable{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;}
+.sbox.clickable:hover{transform:translateY(-2px);filter:brightness(1.04);box-shadow:0 10px 24px rgba(15,23,42,.16);}
+.sbox.clickable:active{transform:translateY(0);}
+.sbox.clickable:focus-visible{outline:2px solid var(--brand);outline-offset:2px;}
+
+.mon-table-box{max-width:960px;display:flex;flex-direction:column;}
+.mon-table-tools{padding:10px 16px 4px;display:flex;flex-direction:column;gap:8px;}
+.mt-seg{display:flex;gap:6px;flex-wrap:wrap;}
+.mt-seg-btn{border:1px solid var(--border);background:var(--bg3);color:var(--text2);border-radius:9px;padding:7px 12px;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;}
+.mt-seg-btn.on{background:linear-gradient(135deg,#1D4ED8,#60A5FA);color:#fff;border-color:#1D4ED8;box-shadow:0 4px 12px rgba(29,78,216,.28);}
+.mt-filters{display:flex;gap:8px;flex-wrap:wrap;}
+.mt-filters #mtSearch{flex:2;min-width:170px;}
+.mt-filters #mtKab{flex:1;min-width:130px;}
+.mt-filters #mtRows{flex:0 0 100px;}
+.mt-meta{font-size:10.5px;color:var(--text3);font-weight:600;}
+.mon-table-body{overflow:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);max-height:75vh;scrollbar-width:thin;}
+.mt-table{width:100%;min-width:760px;border-collapse:collapse;font-size:11px;}
+.mt-table thead th{position:sticky;top:0;z-index:3;background:linear-gradient(135deg,#1D4ED8,#2563EB);color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.4px;padding:8px 9px;text-align:left;white-space:nowrap;}
+.mt-table tbody td{padding:7px 9px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top;}
+.mt-table tbody tr{cursor:pointer;transition:background .1s;}
+.mt-table tbody tr:hover{background:rgba(96,165,250,.14);}
+.mt-table tbody tr:nth-child(even){background:rgba(148,163,184,.07);}
+.mt-table tbody tr:nth-child(even):hover{background:rgba(96,165,250,.14);}
+.mt-table td.mt-c{white-space:nowrap;text-align:center;color:var(--text2);}
+.mt-table td.mt-num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;}
+.mt-table td.mt-unit{font-weight:700;min-width:150px;}
+.mt-table td.mt-unit .kbadge{display:inline-block;margin-right:4px;}
+.mt-table td.mt-note{color:var(--text3);font-size:10.5px;min-width:160px;max-width:300px;}
+.mt-table thead th:first-child,.mt-table td:first-child{position:sticky;left:0;z-index:2;background:var(--bg2);}
+.mt-table thead th:first-child{z-index:4;background:#1D4ED8;}

@@ -14,7 +14,7 @@ function onFilterChange(){
 }
 function clearFilters(){
   ['fdJenis','fdHasil','fdKab','fdSearch'].forEach(id=>document.getElementById(id).value='');
-  FS = {jenis:'', kab:'', hasil:'', search:'', statusMon:'all', modeView:'progres', minFreq:null};
+  FS = {jenis:'', kab:'', hasil:'', search:'', status:'', statusMon:'all', modeView:'progres', minFreq:null};
   document.querySelectorAll('#legendBox .lg-chip-view').forEach(b => b.classList.remove('on'));
   document.querySelectorAll('#legendBox .lg-chip-freq').forEach(b => b.classList.remove('on'));
   const defProg = document.getElementById('lfc_prog_all');

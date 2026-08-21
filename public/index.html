@@ -174,17 +174,17 @@
     <div id="dashBanner"></div>
     <div class="sgrid">
       <!-- 1. SPPG -->
-      <div class="sbox r" title="Total Dapur MBG Terdaftar"><div class="snum" id="stSPPG">0</div><div class="slbl">SPPG / Dapur MBG</div><span class="sico">🍳</span></div>
+      <div class="sbox r clickable" title="Total Dapur MBG Terdaftar — klik untuk melihat daftar unit SPPG" role="button" tabindex="0" onclick="dashCard('sppg')"><div class="snum" id="stSPPG">0</div><div class="slbl">SPPG / Dapur MBG</div><span class="sico">🍳</span></div>
       <!-- 2. KDMP -->
-      <div class="sbox b" title="Total Koperasi Terdaftar"><div class="snum" id="stKDMP">0</div><div class="slbl">KDMP Koperasi</div><span class="sico">🏪</span></div>
+      <div class="sbox b clickable" title="Total Koperasi Terdaftar — klik untuk melihat daftar unit KDMP" role="button" tabindex="0" onclick="dashCard('kdmp')"><div class="snum" id="stKDMP">0</div><div class="slbl">KDMP Koperasi</div><span class="sico">🏪</span></div>
       <!-- 3. MONITORING -->
-      <div class="sbox o" title="Total Monitoring Utama SPPG dan KDMP"><div class="snum" id="stMon">0</div><div class="slbl">Monitoring Utama</div><div class="ssub" id="stMonSub">SPPG 0 · KDMP 0 · Naker 0 form</div><span class="sico">📋</span></div>
+      <div class="sbox o clickable" title="Total Monitoring Utama SPPG dan KDMP — klik untuk tabel ringkas" role="button" tabindex="0" onclick="dashCard('mon')"><div class="snum" id="stMon">0</div><div class="slbl">Monitoring Utama</div><div class="ssub" id="stMonSub">SPPG 0 · KDMP 0 · Naker 0 form</div><span class="sico">📋</span></div>
       <!-- 4. AKTIF / OPERASIONAL -->
-      <div class="sbox g" title="Unit Berstatus Aktif / Operasional"><div class="snum" id="stOper">0</div><div class="slbl">Aktif / Operasional</div><div class="ssub" id="stOperSub">—</div><span class="sico">✅</span></div>
+      <div class="sbox g clickable" title="Unit Berstatus Aktif / Operasional — klik untuk melihat daftarnya" role="button" tabindex="0" onclick="dashCard('aktif')"><div class="snum" id="stOper">0</div><div class="slbl">Aktif / Operasional</div><div class="ssub" id="stOperSub">—</div><span class="sico">✅</span></div>
       <!-- 5. DALAM PERSIAPAN -->
-      <div class="sbox y" title="Unit Berstatus Dalam Persiapan"><div class="snum" id="stPrep">0</div><div class="slbl">Dalam Persiapan</div><div class="ssub" id="stPrepSub">—</div><span class="sico">🟡</span></div>
+      <div class="sbox y clickable" title="Unit Berstatus Dalam Persiapan — klik untuk melihat daftarnya" role="button" tabindex="0" onclick="dashCard('persiapan')"><div class="snum" id="stPrep">0</div><div class="slbl">Dalam Persiapan</div><div class="ssub" id="stPrepSub">—</div><span class="sico">🟡</span></div>
       <!-- 6. RENCANA / USULAN -->
-      <div class="sbox p" title="Unit Berstatus Rencana / Usulan"><div class="snum" id="stPlan">0</div><div class="slbl">Rencana / Usulan</div><div class="ssub" id="stPlanSub">—</div><span class="sico">⚪</span></div>
+      <div class="sbox p clickable" title="Unit Berstatus Rencana / Usulan — klik untuk melihat daftarnya" role="button" tabindex="0" onclick="dashCard('rencana')"><div class="snum" id="stPlan">0</div><div class="slbl">Rencana / Usulan</div><div class="ssub" id="stPlanSub">—</div><span class="sico">⚪</span></div>
     </div>
 
     <div class="dash-charts-grid">
@@ -198,11 +198,6 @@
       </div>
     </div>
 
-    <div class="sec-title"><i class="fas fa-bullseye"></i> Target Sasaran Unit Belum Dimonitor</div>
-    <div id="attnList"></div>
-
-    <div class="sec-title"><i class="fas fa-clock"></i> Monitoring Terbaru</div>
-    <div id="recentMon"></div>
     <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn bp" style="flex:1;min-width:210px" onclick="exportPdfDash()"><i class="fas fa-file-pdf"></i> Ringkasan PDF</button>
       <button class="btn bg" style="flex:1;min-width:210px" onclick="exportXlsx('unit')"><i class="fas fa-file-excel"></i> Data Excel</button>
@@ -357,6 +352,12 @@
         <div class="rpt-report-card" data-report-section="unmonitored" role="button" tabindex="0"><div class="ri">⚠️</div><b>Laporan Belum Dimonitor</b><small>Daftar target kunjungan, prioritas, PIC, lokasi, PDF, dan Excel.</small></div>
         <div class="rpt-report-card" data-report-section="monitored" role="button" tabindex="0"><div class="ri">✅</div><b>Laporan Sudah Dimonitor</b><small>Rekap kunjungan, hasil terakhir, temuan, tindak lanjut, PDF, dan Excel.</small></div>
       </div>
+    </div>
+
+    <div class="rpt-panel" id="econLensPanel">
+      <div class="rpt-panel-title"><i class="fas fa-globe"></i> 🌐 Lensa Ekonomi Daerah — Indikator Proksi Kawasan MBG</div>
+      <div id="econLensBody"><div class="empty"><i class="fas fa-chart-line"></i><p>Memuat indikator…</p></div></div>
+      <div class="fhint" style="margin-top:8px">⚠️ <b>Indikator proksi kawasan MBG</b> — bukan statistik resmi (bukan PDRB/inflasi BPS). Dihitung dari rekaman monev terakhir per unit; <b>n</b> = jumlah sumber data. Skor batang = normalisasi min–maks antar kabupaten per pilar (5 skor terpisah, tanpa komposit).</div>
     </div>
 
     <div class="rpt-panel rpt-managerial-only">
@@ -523,6 +524,30 @@
       <div class="pk-coords" id="pkCoords">Lat: —, Lng: —</div>
     </div>
     <button class="pk-done" onclick="endPickMode()"><i class="fas fa-check"></i> Selesai</button>
+  </div>
+</div>
+
+<!-- ================= MODAL: TABEL RINGKAS MONITORING (PLAN 1) ================= -->
+<div id="mMonTable" class="moverlay hidden">
+  <div class="mbox mon-table-box">
+    <div class="mhead"><h3><i class="fas fa-table"></i> Ringkasan Monitoring</h3><button class="mclose" onclick="closeMonTable()">×</button></div>
+    <div class="mon-table-tools">
+      <div class="mt-seg" role="tablist">
+        <button class="mt-seg-btn on" id="mtSegPrimary" onclick="setMonTableSegment('primary')" role="tab">📋 Monitoring Utama (SPPG &amp; KDMP)</button>
+        <button class="mt-seg-btn" id="mtSegNaker" onclick="setMonTableSegment('naker')" role="tab">👷 Tenaga Kerja (Naker)</button>
+      </div>
+      <div class="mt-filters">
+        <input type="search" id="mtSearch" class="fc" placeholder="🔍 Cari unit / petugas / responden / tanggal..." oninput="renderMonTable()"/>
+        <select id="mtKab" class="fc" onchange="renderMonTable()"><option value="">📍 Semua Kab/Kota</option></select>
+        <select id="mtRows" class="fc" onchange="renderMonTable()" title="Jumlah baris terlihat"><option value="25">25 baris</option><option value="50">50 baris</option><option value="100">100 baris</option><option value="all">Semua</option></select>
+      </div>
+      <div class="mt-meta" id="mtMeta">—</div>
+    </div>
+    <div class="mon-table-body" id="mtBody"></div>
+    <div class="mfoot">
+      <button class="btn bd" onclick="exportMonTablePdf()"><i class="fas fa-file-pdf"></i> Cetak PDF (semua baris filter)</button>
+      <button class="btn bx" onclick="closeMonTable()">Tutup</button>
+    </div>
   </div>
 </div>
 

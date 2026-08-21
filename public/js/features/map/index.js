@@ -65,6 +65,7 @@ function filteredUnits(){
   const q=(FS.search||'').toLowerCase();
   return DB.units.filter(u=>{
     if(FS.jenis&&u.jenis!==FS.jenis)return false;
+    if(FS.status&&u.status!==FS.status)return false; /* PLAN 1: filter status unit (kartu dashboard) */
     if(FS.kab&&u.kab!==FS.kab)return false;
     if(FS.hasil&&unitHasil(u)!==FS.hasil)return false;
     const count = primaryMonitoringForUnit(u.id).length;
@@ -116,10 +117,18 @@ function buildPopup(u){
   const m=primary[0]||null;
   const nakerCount=nakerFormsForUnit(u.id).length;
   const has=u.jenis==='SPPG';
+  /* PLAN 3: angka kunci SPPG dari REALISASI monitoring terakhir (fallback master = sasaran) */
+  const mf = (m && m.form && m.form.fields) || {};
+  const gridTotal = id => { const g=mf[id]; const t=g && g.total; const n=Number(t); return (t===''||t==null||!Number.isFinite(n)) ? null : n; };
+  const plainNum = id => { const v=mf[id]; const n=Number(v); return (v===''||v==null||!Number.isFinite(n)) ? null : n; };
   const kv = has
-    ? `<div class="pk"><b>${fmtN(u.kapasitas)}</b><span>porsi / hari</span></div>
-       <div class="pk"><b>${fmtN(u.sekolah)}</b><span>sekolah sasaran</span></div>
-       <div class="pk" style="grid-column:1/3"><b>${esc(u.yayasan||'—')}</b><span>yayasan pengelola</span></div>`
+    ? (() => {
+        const porsi=gridTotal('sp201'), sekolah=gridTotal('sp202'), pekerja=plainNum('sp205'), juru=plainNum('sp206');
+        return `<div class="pk"><b>${porsi!=null?fmtN(porsi):fmtN(u.kapasitas)}</b><span>porsi terlayani / hari${porsi!=null?'':' (sasaran)'}</span></div>
+       <div class="pk"><b>${sekolah!=null?fmtN(sekolah):fmtN(u.sekolah)}</b><span>sekolah penerima${sekolah!=null?'':' (sasaran)'}</span></div>
+       <div class="pk"><b>${pekerja!=null?fmtN(pekerja):'—'}</b><span>jumlah pekerja</span></div>
+       <div class="pk"><b>${juru!=null?fmtN(juru):'—'}</b><span>juru masak</span></div>`;
+      })()
     : `<div class="pk"><b>${fmtN(u.anggota)}</b><span>anggota</span></div>
        <div class="pk"><b>${esc(u.peran||'—')}</b><span>peran MBG</span></div>
        <div class="pk" style="grid-column:1/3"><b>${esc(u.usaha||'—')}</b><span>unit usaha</span></div>`;

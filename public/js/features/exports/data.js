@@ -2,6 +2,12 @@
    EXPORT / IMPORT (Excel · PDF · JSON)
 ============================================================ */
 /* ---------- helper teks PDF (tanpa emoji, font standar jsPDF) ---------- */
+import { formatRupiahAmount } from '../../domain/forms/currency.js';
+import { computeEconomyAnalytics } from '../../domain/monitoring/economy-analytics.js';
+
+function jutaToRpAbs(stored){ const n = Number(stored); return (stored === '' || stored == null || !Number.isFinite(n)) ? null : Math.round(n * 1000000); }
+function pdfRp(storedJuta){ const abs = jutaToRpAbs(storedJuta); return abs == null ? '-' : stripEmoji(formatRupiahAmount(abs)); }
+function pdfN(v){ const n = Number(v); return (v === '' || v == null || !Number.isFinite(n)) ? '-' : n.toLocaleString('id-ID'); }
 const STATUS_PLAIN={aktif:'Operasional',persiapan:'Tahap Persiapan',rencana:'Direncanakan',kendala:'Ada Kendala'};
 const HASIL_PLAIN={baik:'BAIK',perbaikan:'PERLU PERBAIKAN',kritis:'KRITIS',belum:'BELUM DIMONITOR'};
 const ASPEK_PLAIN={baik:'Baik',perlu:'Perlu',tidak:'Tidak'};
@@ -141,39 +147,172 @@ function exportPdfUnitDetail(id){
   doc.save('DARMA-1_Profil_'+u.nama.replace(/[^\w\s]/g,'').replace(/\s+/g,'_').slice(0,30)+'.pdf');
   toast('📄 PDF profil unit terunduh');
 }
+/* ============================================================
+   PLAN 2 — RINGKASAN PDF = CERMINAN DASHBOARD (seksi A–E)
+   P1: angka mengikuti filter aktif; kop mencantumkan filter.
+============================================================ */
+function pdfFilterDesc(){
+  const parts=[];
+  if(FS.jenis)parts.push('Jenis: '+FS.jenis);
+  if(FS.kab)parts.push('Wilayah: '+FS.kab);
+  if(FS.status)parts.push('Status: '+(STATUS_PLAIN[FS.status]||FS.status));
+  if(FS.search)parts.push('Pencarian: "'+stripEmoji(FS.search)+'"');
+  return parts.length?('Filter aktif — '+parts.join('  ·  ')):'Seluruh data (tanpa filter).';
+}
+function drawStatGrid(doc,y,cards){
+  const x0=12,bw=60.6,bh=19.5,gx=2.3,gy=2.6;
+  cards.slice(0,6).forEach((c,i)=>{
+    const col=i%3,row=Math.floor(i/3);
+    const x=x0+col*(bw+gx),yy=y+row*(bh+gy);
+    doc.setDrawColor(226,232,240);doc.setFillColor(248,250,252);doc.roundedRect(x,yy,bw,bh,2,2,'FD');
+    doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(15,23,42);
+    doc.text(String(c.n),x+3.4,yy+7.2);
+    doc.setFontSize(6.6);doc.setTextColor(51,65,85);doc.text(c.l,x+3.4,yy+11.8);
+    doc.setFontSize(5.7);doc.setFont('helvetica','normal');doc.setTextColor(100,116,139);
+    doc.text(c.sub||'',x+3.4,yy+15.3,{maxWidth:bw-6});
+  });
+  return y+2*(bh+gy)+2;
+}
+function drawProgressRow(doc,x,yy,w,label,val,total,color){
+  const bw=w-64;
+  doc.setFontSize(7);doc.setFont('helvetica','bold');doc.setTextColor(51,65,85);
+  doc.text(label,x,yy+3.2);
+  doc.setFillColor(226,232,240);doc.roundedRect(x+40,yy,bw,3.6,1.8,1.8,'F');
+  const p=total>0?Math.min(100,val/total*100):0;
+  if(p>0){doc.setFillColor(color[0],color[1],color[2]);doc.roundedRect(x+40,yy,Math.max(bw*p/100,4),3.6,1.8,1.8,'F');}
+  doc.setFontSize(7);doc.setTextColor(15,23,42);
+  doc.text(val+'/'+total+'  ('+Math.round(p)+'%)',x+44+bw,yy+3.2);
+}
+function monKind(m){ const u=unitById(m.unitId)||{}; return m.formType||m.jenis||u.jenis||''; }
 function exportPdfDash(){
   const jsPDF=getJsPDF();if(!jsPDF)return;
   const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
-  const s=DB.units.filter(u=>u.jenis==='SPPG').length,k=DB.units.length-s,oper=DB.units.filter(u=>u.status==='aktif').length;
-  let y=pdfHead(doc,'LAPORAN RINGKASAN MONITORING',DB.units.length+' unit terdaftar (SPPG: '+s+', KDMP: '+k+'), '+oper+' unit berstatus operasional, '+DB.monitoring.length+' catatan monitoring.');
+  /* P1: scope mengikuti filter aktif — sama dengan dashboard */
+  const list=filteredUnits();
+  const scopedMon=DB.monitoring.filter(m=>list.some(u=>u.id===m.unitId));
+  const s=list.filter(u=>u.jenis==='SPPG').length,k=list.length-s;
+  const oper=list.filter(u=>u.status==='aktif'),prep=list.filter(u=>u.status==='persiapan'),plan=list.filter(u=>u.status==='rencana');
+  const primaryMon=scopedMon.filter(m=>{const kk=monKind(m);return kk==='SPPG'||kk==='KDMP';});
+  const nakerMon=scopedMon.filter(m=>monKind(m)==='NAKER');
+  const subSplit=arr=>arr.filter(u=>u.jenis==='SPPG').length+' SPPG · '+arr.filter(u=>u.jenis==='KDMP').length+' KDMP';
+  let y=pdfHead(doc,'LAPORAN RINGKASAN MONITORING — CERMINAN DASHBOARD',
+    DB.units.length+' unit terdaftar · '+list.length+' unit dalam lingkup · '+primaryMon.length+' monitoring utama · '+nakerMon.length+' form Naker.\n'+pdfFilterDesc());
+
+  /* A. Ringkasan Statistik (cerminan 6 kartu dashboard) */
   doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(29,78,216);
-  doc.text('A. Status Hasil Monitoring Terakhir Semua Unit',12,y);y+=2;
-  const cnt={baik:0,perbaikan:0,kritis:0,belum:0};DB.units.forEach(u=>cnt[unitHasil(u)]++);
-  doc.autoTable({startY:y,head:[['Status Hasil','Jumlah Unit','Persentase']],body:Object.keys(HASIL_PLAIN).map(h=>[HASIL_PLAIN[h],cnt[h],DB.units.length?Math.round(cnt[h]/DB.units.length*100)+'%':'0%']),styles:TBL_STYLE,headStyles:TBL_HEAD,...TBL_ALT,columnStyles:{0:{cellWidth:70},1:{cellWidth:45},2:{cellWidth:45}}});
+  doc.text('A. Ringkasan Statistik',12,y);y+=2;
+  y=drawStatGrid(doc,y,[
+    {n:s,l:'SPPG / DAPUR MBG',sub:'unit terdaftar dalam lingkup'},
+    {n:k,l:'KDMP KOPERASI',sub:'unit terdaftar dalam lingkup'},
+    {n:primaryMon.length,l:'MONITORING UTAMA',sub:'SPPG '+primaryMon.filter(m=>monKind(m)==='SPPG').length+' · KDMP '+primaryMon.filter(m=>monKind(m)==='KDMP').length+' · Naker '+nakerMon.length+' form'},
+    {n:oper.length,l:'AKTIF / OPERASIONAL',sub:subSplit(oper)},
+    {n:prep.length,l:'DALAM PERSIAPAN',sub:subSplit(prep)},
+    {n:plan.length,l:'RENCANA / USULAN',sub:subSplit(plan)},
+  ]);
+
+  /* B. Progres Cakupan Monitoring (bar digambar) */
+  y+=3;doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(29,78,216);
+  doc.text('B. Progres Cakupan Monitoring (Sudah vs Belum)',12,y);y+=4;
+  const monByKind=kind=>{const us=list.filter(u=>u.jenis===kind);const mon=us.filter(u=>scopedMon.some(m=>m.unitId===u.id&&monKind(m)===kind));return [mon.length,us.length];};
+  const sPair=monByKind('SPPG'),kPair=monByKind('KDMP');
+  const totMon=list.filter(u=>primaryMon.some(m=>m.unitId===u.id)).length;
+  drawProgressRow(doc,14,y,184,'SPPG Dimonitor',sPair[0],sPair[1],[245,158,11]);y+=7;
+  drawProgressRow(doc,14,y,184,'KDMP Dimonitor',kPair[0],kPair[1],[59,130,246]);y+=7;
+  drawProgressRow(doc,14,y,184,'Total Cakupan',totMon,list.length,[22,163,74]);y+=6;
+
+  /* C. Unit per Kabupaten/Kota (cerminan bar kabupaten) */
+  doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(29,78,216);
+  doc.text('C. Unit per Kabupaten/Kota',12,y);y+=2;
+  const kabs=Object.keys(KABUPATEN).map(kab=>{
+    const us=list.filter(u=>u.kab===kab);
+    return [kab,us.filter(u=>u.jenis==='SPPG').length,us.filter(u=>u.jenis==='KDMP').length,us.length,scopedMon.filter(m=>us.some(u=>u.id===m.unitId)).length];
+  });
+  doc.autoTable({startY:y,head:[['Kabupaten/Kota','SPPG','KDMP','Total Unit','Total Monitoring']],body:kabs,
+    styles:TBL_STYLE,headStyles:TBL_HEAD,...TBL_ALT,columnStyles:{0:{cellWidth:60},1:{cellWidth:30},2:{cellWidth:30},3:{cellWidth:32},4:{cellWidth:34}}});
   y=doc.lastAutoTable.finalY+6;
+
+  /* D. Ringkasan Monitoring SPPG (semua rekaman, 1 baris per kunjungan) */
   doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(29,78,216);
-  doc.text('B. Unit per Kabupaten/Kota',12,y);y+=2;
-  doc.autoTable({startY:y,head:[['Kabupaten/Kota','SPPG','KDMP','Total Unit','Total Monitoring']],
-    body:Object.keys(KABUPATEN).map(kab=>{const us=DB.units.filter(u=>u.kab===kab);const ms=DB.monitoring.filter(m=>us.some(u=>u.id===m.unitId)).length;
-      return [kab,us.filter(u=>u.jenis==='SPPG').length,us.filter(u=>u.jenis==='KDMP').length,us.length,ms];}),
-    styles:TBL_STYLE,headStyles:TBL_HEAD,...TBL_ALT});
-  y=doc.lastAutoTable.finalY+6;
-  doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(29,78,216);
-  doc.text('C. Unit Perlu Perhatian (hasil kritis / perlu perbaikan / belum dimonitor)',12,y);y+=2;
-  const rank={kritis:0,perbaikan:1,belum:2};
-  const attn=DB.units.filter(u=>unitHasil(u)!=='baik').sort((a,b)=>rank[unitHasil(a)]-rank[unitHasil(b)]);
-  if(attn.length){
+  doc.text('D. Ringkasan Monitoring SPPG (semua rekaman, 1 baris per kunjungan)',12,y);y+=2;
+  const sppgRecs=scopedMon.filter(m=>monKind(m)==='SPPG').sort((a,b)=>String(b.tgl||'').localeCompare(String(a.tgl||'')));
+  if(sppgRecs.length){
     doc.autoTable({startY:y,
-      head:[['No','Jenis','Nama Unit','Kecamatan / Kabupaten','Status Hasil','Rekomendasi Terakhir']],
-      body:attn.map((u,i)=>{const m=lastMon(u.id);return [i+1,u.jenis,stripEmoji(u.nama),u.kec+' / '+u.kab,HASIL_PLAIN[unitHasil(u)],m?stripEmoji(m.rekom||'-'):'Segera jadwalkan kunjungan monitoring.'];}),
-      styles:{fontSize:6.8,cellPadding:1.6,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
-      columnStyles:{0:{cellWidth:7},1:{cellWidth:13},2:{cellWidth:38},3:{cellWidth:42},4:{cellWidth:26},5:{cellWidth:57}},
-      didParseCell:d=>{if(d.column.index===4&&d.section==='body'){const v=d.cell.raw;const c=v==='KRITIS'?[185,28,28]:v==='PERLU PERBAIKAN'?[180,83,9]:[100,116,139];d.cell.styles.textColor=c;d.cell.styles.fontStyle='bold';}}
-    });
-  }else{doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(120);doc.text('Seluruh unit berstatus BAIK pada monitoring terakhir.',12,y+4);}
+      head:[['No','Nama SPPG / Ka. SPPG','Tgl','Penerima','Belanja Baku 1mgg','Biaya Ops 1mgg','Kendala/Hambatan','Catatan Lain']],
+      body:sppgRecs.map((m,i)=>{
+        const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};
+        const ka=(f.sp107&&String(f.sp107).trim())||u.pic||'';
+        const nama=stripEmoji(u.nama)+(ka?'\nKa. SPPG: '+stripEmoji(ka):'');
+        const kendala=Array.isArray(f.sp414)?f.sp414.filter(Boolean).join(', '):(f.sp414||'-');
+        const porsi=(f.sp201&&f.sp201.total!=null)?pdfN(f.sp201.total):'-';
+        const belanja=(f.sp410&&f.sp410.total!=null)?pdfRp(f.sp410.total):'-';
+        const ops=(f.sp413&&f.sp413.total!=null)?pdfRp(f.sp413.total):'-';
+        return [i+1,nama,fmtD(m.tgl),porsi,belanja,ops,stripEmoji(kendala||'-'),stripEmoji(m.temuan||'-')];
+      }),
+      styles:{fontSize:6.6,cellPadding:1.5,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
+      columnStyles:{0:{cellWidth:7},1:{cellWidth:28},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:19},5:{cellWidth:19},6:{cellWidth:31},7:{cellWidth:55}}});
+    y=doc.lastAutoTable.finalY+6;
+  }else{doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(120);doc.text('Belum ada rekaman monitoring SPPG dalam lingkup.',12,y+3);y+=8;}
+
+  /* E. Lensa Ekonomi Daerah (5 skor terpisah per kabupaten) */
+  doc.addPage();
+  let yE=pdfHead(doc,'LENSA EKONOMI DAERAH — INDIKATOR PROKSI KAWASAN MBG','Dihitung dari rekaman monev terakhir per unit SPPG.\n'+pdfFilterDesc());
+  const econ=computeEconomyAnalytics({units:list,monitoring:scopedMon},Object.keys(KABUPATEN));
+  const fmtP2=v=>v==null?'-':(v>=0?'+':'')+v.toFixed(1)+'%';
+  doc.autoTable({startY:yE,
+    head:[['Kabupaten/Kota','Dana BGN (top-up)','Local Content','Ke Koperasi/Desa','Delta Harga','Pekerja','Payroll (bln)','Serapan','n']],
+      body:econ.map(r=>{const p=r.pillars;return [
+        r.kab,
+        p.dana.topUpRp==null?'-':pdfRp(p.dana.topUpRp/1000000),
+        p.lokal.localContentPct==null?'-':p.lokal.localContentPct.toFixed(1)+'%',
+        p.lokal.koperasiPct==null?'-':p.lokal.koperasiPct.toFixed(1)+'%',
+        p.harga.changePct==null?'-':fmtP2(p.harga.changePct),
+        p.naker.pekerja==null?'-':String(p.naker.pekerja),
+        p.naker.payrollRp==null?'-':pdfRp(p.naker.payrollRp/1000000),
+        p.serapan.utilisasiPct==null?'-':p.serapan.utilisasiPct.toFixed(1)+'%',
+        String(r.nRecords)];}),
+    styles:{fontSize:7,cellPadding:1.8,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
+    columnStyles:{0:{cellWidth:32},1:{cellWidth:26},2:{cellWidth:20},3:{cellWidth:22},4:{cellWidth:18},5:{cellWidth:14},6:{cellWidth:26},7:{cellWidth:15},8:{cellWidth:9}}});
+  let yE2=doc.lastAutoTable.finalY+5;
+  doc.setFontSize(6.8);doc.setFont('helvetica','italic');doc.setTextColor(100,116,139);
+  doc.text('Catatan metodologi: indikator proksi kawasan MBG, BUKAN statistik resmi (bukan PDRB/inflasi BPS). Nilai uang = rupiah penuh (konversi presisi dari skala Rp Juta 6-desimal). n = jumlah rekaman monev kabupaten. Delta harga = rata-rata perubahan beras/ayam/telur/susu (bulan ini vs lalu). Skor antar-pilar tidak digabung (tanpa komposit).',12,yE2,{maxWidth:186});
   pdfFoot(doc);
   doc.save('DARMA-1_LaporanRingkasan_'+new Date().toISOString().slice(0,10)+'.pdf');
-  toast('📄 Laporan ringkasan terunduh');
+  toast('📄 Laporan ringkasan (cerminan dashboard) terunduh');
+}
+
+/* ============================================================
+   PLAN 1 — PDF TABEL RINGKAS MONITORING (modal)
+   Mencetak SEMUA baris hasil filter modal (bukan hanya yang terlihat).
+============================================================ */
+function exportMonTablePdf(){
+  const jsPDF=getJsPDF();if(!jsPDF)return;
+  if(typeof monTableRecords!=='function'){toast('Tabel monitoring belum siap.','e');return;}
+  const recs=monTableRecords();
+  if(!recs.length){toast('Tidak ada data sesuai filter tabel.','e');return;}
+  const isNaker=(typeof monTableSegment==='function'?monTableSegment():'primary')==='naker';
+  const doc=new jsPDF({orientation:'l',unit:'mm',format:'a4'});
+  const searchEl=document.getElementById('mtSearch'),kabEl=document.getElementById('mtKab');
+  const desc=[(searchEl&&searchEl.value)?('Cari: "'+stripEmoji(searchEl.value)+'"'):'',(kabEl&&kabEl.value)?('Kab/Kota: '+kabEl.value):''].filter(Boolean).join('  ·  ')||'Tanpa filter tambahan';
+  let y=pdfHead(doc,'RINGKASAN MONITORING — '+(isNaker?'TENAGA KERJA (NAKER)':'MONITORING UTAMA (SPPG & KDMP)'),desc+'\nTotal '+recs.length+' baris — mencetak SEMUA baris filter, bukan hanya yang terlihat di layar.');
+  if(isNaker){
+    doc.autoTable({startY:y,head:[['No','Tanggal','Unit SPPG','Responden','Jabatan','Upah/Bulan','Hari/Mgg','Dampak Ekonomi Keluarga']],
+      body:recs.map((m,i)=>{const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};const up=Number(f.nk207);
+        return [i+1,fmtD(m.tgl),stripEmoji(u.nama),stripEmoji(f.nk101||'-'),stripEmoji(f.nk102||'-'),(f.nk207===''||f.nk207==null||!Number.isFinite(up))?'-':stripEmoji(formatRupiahAmount(up)),(f.nk205===''||f.nk205==null)?'-':String(f.nk205),stripEmoji(f.nk308||'-')];}),
+      styles:{fontSize:7,cellPadding:1.7,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
+      columnStyles:{0:{cellWidth:9},1:{cellWidth:20},2:{cellWidth:52},3:{cellWidth:36},4:{cellWidth:30},5:{cellWidth:28},6:{cellWidth:14},7:{cellWidth:75}}});
+  }else{
+    doc.autoTable({startY:y,head:[['No','Tanggal','Unit','Kab/Kota','Petugas','Porsi/hr','Sekolah','Skor','Temuan']],
+      body:recs.map((m,i)=>{const u=unitById(m.unitId)||{};const f=(m.form&&m.form.fields)||{};
+        const porsi=(f.sp201&&f.sp201.total!=null)?pdfN(f.sp201.total):'-';
+        const sek=(f.sp202&&f.sp202.total!=null)?pdfN(f.sp202.total):'-';
+        const skor=(m.form&&m.jenis==='KDMP'&&m.form.avg!=null)?String(m.form.avg):'-';
+        return [i+1,fmtD(m.tgl),stripEmoji(u.nama),stripEmoji(u.kab||'-'),stripEmoji(m.petugas||'-'),porsi,sek,skor,stripEmoji(m.temuan||'-')];}),
+      styles:{fontSize:7,cellPadding:1.7,overflow:'linebreak'},headStyles:TBL_HEAD,...TBL_ALT,
+      columnStyles:{0:{cellWidth:9},1:{cellWidth:20},2:{cellWidth:56},3:{cellWidth:26},4:{cellWidth:34},5:{cellWidth:15},6:{cellWidth:15},7:{cellWidth:13},8:{cellWidth:76}}});
+  }
+  pdfFoot(doc);
+  doc.save('DARMA-1_TabelMonitoring_'+new Date().toISOString().slice(0,10)+'.pdf');
+  toast('📄 PDF tabel monitoring terunduh ('+recs.length+' baris)');
 }
 function exportXlsxUnit(id){
   const u=unitById(id);if(!u)return;
@@ -241,4 +380,4 @@ function importJSON(ev){
 
 /* Public action bridge for existing HTML controls. */
 Object.assign(globalThis, { STATUS_PLAIN, HASIL_PLAIN, ASPEK_PLAIN, SLHS_PLAIN, TBL_STYLE, TBL_HEAD, TBL_ALT });
-Object.assign(globalThis, { stripEmoji, getJsPDF, pdfHead, pdfFoot, exportPdfMonitoring, exportPdfUnits, exportPdfUnitDetail, exportPdfDash, exportXlsxUnit, exportXlsx, exportJSON, importJSON });
+Object.assign(globalThis, { stripEmoji, getJsPDF, pdfHead, pdfFoot, exportPdfMonitoring, exportPdfUnits, exportPdfUnitDetail, exportPdfDash, exportMonTablePdf, exportXlsxUnit, exportXlsx, exportJSON, importJSON });
