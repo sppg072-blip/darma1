@@ -184,6 +184,22 @@ function drawProgressRow(doc,x,yy,w,label,val,total,color){
   doc.text(val+'/'+total+'  ('+Math.round(p)+'%)',x+44+bw,yy+3.2);
 }
 function monKind(m){ const u=unitById(m.unitId)||{}; return m.formType||m.jenis||u.jenis||''; }
+/* AUDIT: Belanja Bahan Baku 1 minggu = pengeluaran per kelompok BAHAN BAKU (sp411, semua kelompok, dalam+luar kota);
+   fallback ke total per kelompok supplier (sp410.total) bila sp411 tidak diisi. Skala tersimpan: Rp Juta. */
+function bahanBakuJuta(f){
+  const g=f&&f.sp411;
+  if(g&&typeof g==='object'){
+    let s=0,has=false;
+    Object.keys(g).forEach(r=>{
+      if(r==='total')return;
+      const c=g[r]||{};
+      ['dalam','luar'].forEach(k=>{const raw=c[k];const v=Number(raw);if(raw!==''&&raw!=null&&Number.isFinite(v)){s+=v;has=true;}});
+    });
+    if(has)return s;
+  }
+  const t=f&&f.sp410&&f.sp410.total;const n=Number(t);
+  return (t!=null&&t!==''&&Number.isFinite(n))?n:null;
+}
 function exportPdfDash(){
   const jsPDF=getJsPDF();if(!jsPDF)return;
   const doc=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
@@ -247,12 +263,12 @@ function exportPdfDash(){
       const nama=stripEmoji(u.nama)+(ka?'\nKa. SPPG: '+stripEmoji(ka):'');
       const kendala=Array.isArray(f.sp414)?f.sp414.filter(Boolean).join(', '):(f.sp414||'-');
       const porsiN=(f.sp201&&f.sp201.total!=null)?Number(f.sp201.total):null;
-      const belanjaN=jutaToRpAbs(f.sp410&&f.sp410.total);
+      const belanjaN=jutaToRpAbs(bahanBakuJuta(f)); /* AUDIT: utama sp411 (kelompok bahan baku), fallback sp410 */
       const opsN=jutaToRpAbs(f.sp413&&f.sp413.total);
       if(porsiN!=null)sumPenerima+=porsiN;
       if(belanjaN!=null)sumBelanja+=belanjaN;
       if(opsN!=null)sumOps+=opsN;
-      return [i+1,nama,fmtD(m.tgl),porsiN!=null?pdfN(porsiN):'-',belanjaN!=null?pdfRp(f.sp410.total):'-',opsN!=null?pdfRp(f.sp413.total):'-',stripEmoji(kendala||'-'),stripEmoji(m.temuan||'-')];
+      return [i+1,nama,fmtD(m.tgl),porsiN!=null?pdfN(porsiN):'-',belanjaN!=null?pdfRp(belanjaN/1000000):'-',opsN!=null?pdfRp(f.sp413.total):'-',stripEmoji(kendala||'-'),stripEmoji(m.temuan||'-')];
     });
     doc.autoTable({startY:y,
       head:[['No','Nama SPPG / Ka. SPPG','Tgl','Penerima','Belanja Baku 1mgg','Biaya Ops 1mgg','Kendala/Hambatan','Catatan Lain']],
@@ -263,7 +279,7 @@ function exportPdfDash(){
       columnStyles:{0:{cellWidth:7},1:{cellWidth:28},2:{cellWidth:15},3:{cellWidth:14},4:{cellWidth:19},5:{cellWidth:19},6:{cellWidth:31},7:{cellWidth:55}}});
     y=doc.lastAutoTable.finalY+3.5;
     doc.setFontSize(6.8);doc.setFont('helvetica','italic');doc.setTextColor(100,116,139);
-    doc.text('Catatan: tabel menampilkan kunjungan TERAKHIR setiap unit SPPG. Total seluruh kunjungan dalam lingkup: '+allSppgRecs.length+' rekaman dari '+seenSppgUnits.size+' unit SPPG.',12,y,{maxWidth:186});
+    doc.text('Catatan: tabel menampilkan kunjungan TERAKHIR setiap unit SPPG. Total seluruh kunjungan dalam lingkup: '+allSppgRecs.length+' rekaman dari '+seenSppgUnits.size+' unit SPPG. Belanja Bahan Baku = pengeluaran per kelompok bahan baku (sp411: pokok/lauk/sayur/buah/minuman/lainnya, dalam+luar kota); bila kosong memakai total per kelompok supplier (sp410).',12,y,{maxWidth:186});
     y+=6;
   }else{doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(120);doc.text('Belum ada rekaman monitoring SPPG dalam lingkup.',12,y+3);y+=8;}
 
