@@ -225,9 +225,9 @@ function exportPdfDash(){
   doc.text('C. Unit per Kabupaten/Kota',12,y);y+=2;
   const kabs=Object.keys(KABUPATEN).map(kab=>{
     const us=list.filter(u=>u.kab===kab);
-    return [kab,us.filter(u=>u.jenis==='SPPG').length,us.filter(u=>u.jenis==='KDMP').length,us.length,scopedMon.filter(m=>us.some(u=>u.id===m.unitId)).length];
+    return [kab,us.filter(u=>u.jenis==='SPPG').length,us.filter(u=>u.jenis==='KDMP').length,us.length,primaryMon.filter(m=>us.some(u=>u.id===m.unitId)).length]; /* monitoring utama saja — NAKER dikecualikan, konsisten dgn kartu A */
   });
-  doc.autoTable({startY:y,head:[['Kabupaten/Kota','SPPG','KDMP','Total Unit','Total Monitoring']],body:kabs,
+  doc.autoTable({startY:y,head:[['Kabupaten/Kota','SPPG','KDMP','Total Unit','Monitoring Utama']],body:kabs,
     styles:TBL_STYLE,headStyles:TBL_HEAD,...TBL_ALT,columnStyles:{0:{cellWidth:60},1:{cellWidth:30},2:{cellWidth:30},3:{cellWidth:32},4:{cellWidth:34}}});
   y=doc.lastAutoTable.finalY+6;
 

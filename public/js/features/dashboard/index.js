@@ -68,7 +68,7 @@ function renderDash(){
   // kabupaten bars
   const kabs=Object.entries(KABUPATEN).map(([kab])=>{
     const us=list.filter(u=>u.kab===kab);
-    return {kab,n:us.length,mon:DB.monitoring.filter(m=>us.some(u=>u.id===m.unitId)).length};
+    return {kab,n:us.length,mon:primaryMonitoring.filter(m=>us.some(u=>u.id===m.unitId)).length}; /* monitoring utama saja — NAKER dikecualikan */
   });
   const maxK=Math.max(1,...kabs.map(x=>x.n));
   document.getElementById('kabBars').innerHTML=kabs.map(x=>`
