@@ -298,6 +298,7 @@
       <button class="btn bs bsm" id="btnBackup" onclick="openBackupMenu()"><i class="fas fa-download"></i> Backup</button>
       <button class="btn bs bsm" id="btnRestore" onclick="document.getElementById('impJson').click()"><i class="fas fa-upload"></i> Restore</button>
       <button class="btn bs bsm" id="btnImportUnits" onclick="openUnitsImportWizard()" title="Impor unit dari JSON dengan pratinjau & validasi kemiripan"><i class="fas fa-file-import"></i> Impor Unit</button>
+      <button class="btn bd bsm" id="btnPurgeUnits" onclick="openPurgeMenu()" title="Hapus massal data per jenis (khusus admin)"><i class="fas fa-trash-alt"></i> Hapus Data</button>
       <button class="btn bp bsm" id="btnImportTOptimal" onclick="openTOptimalProcessMenu()"><i class="fas fa-gears"></i> Proses T-OPTIMAL</button>
       <input type="file" id="impJson" accept=".json" style="display:none" onchange="importJSON(event)"/>
       <input type="file" id="impTOptimal" accept=".json,application/json" style="display:none" onchange="importTOptimal(event)"/>
