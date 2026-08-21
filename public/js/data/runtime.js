@@ -99,6 +99,8 @@ function loadSampleCloud(){DB=JSON.parse(JSON.stringify(DEF));persistReplace();r
 function closeM(id){document.getElementById(id).classList.add('hidden');}
 function unitById(id){return DB.units.find(u=>u.id===id);}
 function monsOf(unitId){return DB.monitoring.filter(m=>m.unitId===unitId).sort((a,b)=>b.tgl.localeCompare(a.tgl));}
+/* PLAN 3 (revisi): hitungan KUNJUNGAN hanya monitoring utama sesuai jenis unit — form NAKER (per responden) TIDAK dihitung sebagai kunjungan */
+function primaryMonsOf(unitId){const u=unitById(unitId);const k=m=>m.formType||m.jenis||(u?u.jenis:'');return DB.monitoring.filter(m=>m.unitId===unitId&&(k(m)==='SPPG'||k(m)==='KDMP')).sort((a,b)=>b.tgl.localeCompare(a.tgl));}
 function lastMon(unitId){const m=monsOf(unitId);return m.length?m[0]:null;}
 function unitHasil(u){const m=lastMon(u.id);return m?m.hasil:'belum';}
 function computeHasil(k,g,d,dok){if([k,g,d,dok].includes('tidak'))return 'kritis';if([k,g,d,dok].includes('perlu'))return 'perbaikan';return 'baik';}
@@ -124,4 +126,4 @@ Object.defineProperties(globalThis, {
   pickMode: { configurable: true, get: () => pickMode, set: value => { pickMode = value; } },
   FS: { configurable: true, get: () => FS, set: value => { FS = value; } }
 });
-Object.assign(globalThis, { esc, uid, fmtD, fmtN, toast, loadDB, saveDB, loadDBAsync, reportDataChanged, persist, persistRemove, persistClear, persistReplace, updateModeBadge, loadSampleCloud, closeM, unitById, monsOf, lastMon, unitHasil, computeHasil, slhsLabel, statusUnitLabel });
+Object.assign(globalThis, { esc, uid, fmtD, fmtN, toast, loadDB, saveDB, loadDBAsync, reportDataChanged, persist, persistRemove, persistClear, persistReplace, updateModeBadge, loadSampleCloud, closeM, unitById, monsOf, primaryMonsOf, lastMon, unitHasil, computeHasil, slhsLabel, statusUnitLabel });

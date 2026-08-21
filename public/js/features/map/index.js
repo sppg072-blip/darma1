@@ -133,7 +133,8 @@ function buildPopup(u){
        <div class="pk"><b>${esc(u.peran||'—')}</b><span>peran MBG</span></div>
        <div class="pk" style="grid-column:1/3"><b>${esc(u.usaha||'—')}</b><span>unit usaha</span></div>`;
   let hasilHtml;
-  const count = monsOf(u.id).length;
+  /* PLAN 3 (revisi): jumlah kunjungan = monitoring utama saja (SPPG/KDMP sesuai jenis unit), NAKER dikecualikan */
+  const count = primary.length;
   if(m){
     hasilHtml=`<div class="pop-has ok">
       <b>🟢 Sudah Dimonitor (${count}x Kunjungan)</b> · Terakhir: <i>${fmtD(m.tgl)}</i><br>

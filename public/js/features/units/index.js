@@ -56,11 +56,12 @@ function renderUnitList(){
   const list=[...filteredUnits()].sort((a,b)=>a.jenis===b.jenis?a.nama.localeCompare(b.nama):a.jenis==='SPPG'?-1:1);
   el.innerHTML=list.length?list.map(u=>{
     const h=unitHasil(u);
+    const kunjungan=primaryMonsOf(u.id).length; /* PLAN 3 revisi: kunjungan = monitoring utama saja, NAKER dikecualikan */
     return `<div class="hcard" onclick="flyToUnit('${u.id}')">
       <div class="hc-top">
         <div class="kbadge ${u.jenis.toLowerCase()} ${h}">${u.jenis==='SPPG'?'S':'K'}</div>
         <div class="hc-name">${esc(u.nama)}</div>
-        <div class="kchip ${monsOf(u.id).length>0 ? 'baik' : 'belum'}">${monsOf(u.id).length>0 ? '🟢 Sudah Dimonitor (' + monsOf(u.id).length + 'x)' : '⚪ Belum Dimonitor'}</div>
+        <div class="kchip ${kunjungan>0 ? 'baik' : 'belum'}">${kunjungan>0 ? '🟢 Sudah Dimonitor (' + kunjungan + 'x)' : '⚪ Belum Dimonitor'}</div>
       </div>
       <div style="font-size:10px;color:var(--text3);margin:2px 0 3px">📍 ${esc(u.alamat)}, ${esc(u.kec)}, ${esc(u.kab)}</div>
       <div style="font-size:9.5px;color:var(--text3)">📂 ${esc(u.ref||'—')} · ${statusUnitLabel(u.status)}${u.pic?' · 👤 '+esc(u.pic):''}</div>
