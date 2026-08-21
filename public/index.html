@@ -297,6 +297,8 @@
       <button class="btn bd bsm" onclick="exportPdfUnits()"><i class="fas fa-file-pdf"></i> PDF</button>
       <button class="btn bs bsm" id="btnBackup" onclick="exportJSON()"><i class="fas fa-download"></i> Backup</button>
       <button class="btn bs bsm" id="btnRestore" onclick="document.getElementById('impJson').click()"><i class="fas fa-upload"></i> Restore</button>
+      <button class="btn bs bsm" id="btnImportUnits" onclick="document.getElementById('impUnits').click()" title="Tambah unit dari file JSON (gabung, tanpa menghapus data lain)"><i class="fas fa-file-import"></i> Impor Unit</button>
+      <input type="file" id="impUnits" accept=".json,application/json" style="display:none" onchange="importUnitsJSON(event)"/>
       <button class="btn bp bsm" id="btnImportTOptimal" onclick="openTOptimalProcessMenu()"><i class="fas fa-gears"></i> Proses T-OPTIMAL</button>
       <input type="file" id="impJson" accept=".json" style="display:none" onchange="importJSON(event)"/>
       <input type="file" id="impTOptimal" accept=".json,application/json" style="display:none" onchange="importTOptimal(event)"/>

@@ -5,7 +5,7 @@ import { formatRupiahAmount } from '../../domain/forms/currency.js';
 
 function applyRBAC() {
   const isAdmin = CU && CU.role === 'admin';
-  const els = ['btnAddUnit', 'btnBackup', 'btnRestore', 'btnImportTOptimal', 'dtDelBtn', 'dtEditBtn', 'btnClearMon'];
+    const els = ['btnAddUnit', 'btnBackup', 'btnRestore', 'btnImportUnits', 'btnImportTOptimal', 'dtDelBtn', 'dtEditBtn', 'btnClearMon'];
   els.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = isAdmin ? 'inline-flex' : 'none';
