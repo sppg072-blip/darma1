@@ -94,8 +94,8 @@ export function computeEconomyAnalytics(db, kabupatenKeys){
       dalamRp: lokalN ? dalamRp : null,
       luarRp: lokalN ? luarRp : null,
       localContentPct: (dalamRp + luarRp) > 0 ? (dalamRp / (dalamRp + luarRp)) * 100 : null,
-      koperasiPct: totalBelanjaRp > 0 ? (coopRp / totalBelanjaRp) * 100 : null,
-      totalBelanjaRp: belanjaN ? totalBelanjaRp : null,
+      koperasiPct: totalBelanjaRp > 0 ? (coopRp / totalBelanjaRp) * 100 : null, /* pembilang & penyebut sama-sama sp410 */
+      totalBelanjaRp: lokalN ? dalamRp + luarRp : null, /* konsistensi: total belanja bahan = sp411 (dalam+luar), bukan sp410 */
       n: Math.max(lokalN, belanjaN),
     };
 

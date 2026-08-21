@@ -673,7 +673,7 @@ const global = window;
     const s = pptx.addSlide(); addHeader(s, pptx, 'Supplier, Belanja Lokal & Kendala Keuangan', 'Monitoring terbaru — nilai tampil ringkas (miliar/juta), presisi dari isian Rp juta', page);
     kpi(s, pptx, .55, 1.24, 2.25, 1.12, fmt(sum(d.supplierCounts)), 'Supplier terlapor', C.blue, `${fmt(d.supplierCounts.length)} SPPG mengisi`);
     kpi(s, pptx, 2.97, 1.24, 2.25, 1.12, fmtRpShort(d.finance.topUpJuta * 1e6), 'Top-up BGN', C.purple, 'Arus dana masuk (sp403)');
-    kpi(s, pptx, 5.39, 1.24, 2.25, 1.12, fmtRpShort(sum(Object.values(d.finance.supplierSpend)) * 1e6), 'Belanja pemasok', C.green, 'Total isian supplier');
+    kpi(s, pptx, 5.39, 1.24, 2.25, 1.12, fmtRpShort((d.finance.originSpend['Dalam kota'] + d.finance.originSpend['Luar kota']) * 1e6), 'Belanja bahan baku', C.green, 'sp411 · kelompok bahan, dalam+luar kota');
     kpi(s, pptx, 7.81, 1.24, 2.25, 1.12, fmtRpShort(d.finance.originSpend['Dalam kota'] * 1e6), 'Belanja dalam kota', C.cyan, 'Serapan ekonomi lokal');
     kpi(s, pptx, 10.23, 1.24, 2.25, 1.12, fmt(d.finance.filled), 'SPPG berdata', C.amber, `${fmtPct(pct(d.finance.filled,d.total))} cakupan`);
     panel(s, pptx, .6, 2.72, 6.0, 3.92, 'Komposisi Belanja per Kelompok Supplier');
